@@ -1,8 +1,8 @@
 import { NodeId, BinaryOperation, UnaryOperation } from "./types";
 
 enum VertexKind {
-    Control,
-    Data
+    Control = 'control',
+    Data = 'data'
 };
 
 export abstract class Vertex {

@@ -24,6 +24,8 @@
   "homepage": "https://github.com/Ortal1993/compilation-project#readme",
   "dependencies": {
     "@types/node": "^18.11.9",
+    "csv-writer": "^1.6.0",
     "typescript": "^4.8.4"
-  }
+  },
+  "type": "commonjs"
 }
