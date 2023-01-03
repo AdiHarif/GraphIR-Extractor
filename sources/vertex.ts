@@ -1,8 +1,14 @@
 import { NodeId, BinaryOperation, UnaryOperation } from "./types";
 
+enum VertexKind {
+    Control,
+    Data
+};
+
 export abstract class Vertex {
     private static next_id: NodeId = 0;
     public id: NodeId;
+    public kind: VertexKind;
 
     constructor() {
         this.id = Vertex.next_id++;
@@ -20,12 +26,14 @@ export abstract class Vertex {
 }
 
 abstract class DataVertex extends Vertex {
+    kind = VertexKind.Data;
     constructor() {
         super();
     }
 }
 
 export abstract class ControlVertex extends Vertex {
+    kind = VertexKind.Control;
     constructor() {
         super();
     }
