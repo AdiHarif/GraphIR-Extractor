@@ -4,6 +4,7 @@ import { SymbolTable } from "./symbolTable";
 import { ConstTable } from "./constTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
+import { exportGraph } from "./outputManager";
 
 class Analyzer {
     private output: string;
@@ -37,7 +38,11 @@ class Analyzer {
     public run() {
         this.buildGraph();
     }
-        
+
+    public getGraph() {
+        return this.graph;
+    }
+
     private static getIdentifierName(name: ts.Identifier | ts.PropertyName): string{
         return (name as any).escapedText;
     }
@@ -809,6 +814,7 @@ function main() {
     const sourceName: string = process.argv[3];
     let analyzer: Analyzer = new Analyzer(output, sourceName);
     analyzer.run();
+    exportGraph(analyzer.getGraph())
 }
 
 main();
