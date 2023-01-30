@@ -20,8 +20,9 @@ export class Graph {
     private static typeToStyle(type: EdgeType, label: string) {
         switch(type) {
             case EdgeType.Control:
-            case EdgeType.Data:
                 return `label="${label}"`;
+            case EdgeType.Data:
+                return `label="${label}" arrowhead="empty"`;
             case EdgeType.Association:
                 return `label="${label}", style=dashed, dir=none`;
             default:
