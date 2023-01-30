@@ -133,7 +133,7 @@ export class Graph {
         else {
             content = "digraph G {\n";
             this.vertices.forEach(vertex => {
-                content += `\t${vertex.id} [ label="${vertex.getLabel()}" shape="rectangle" ];\n`
+                content += `\t${vertex.id} [ label="${vertex.getLabel()}" shape="${vertex.kind == "control" ? "diamond" : "rectangle"}" ];\n`
             });
             this.edges.forEach(edge => {
                 content += `\t${edge.srcId} -> ${edge.dstId} [ ${Graph.typeToStyle(edge.type, edge.label)} ];\n`
