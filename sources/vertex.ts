@@ -27,16 +27,10 @@ export abstract class Vertex {
 
 abstract class DataVertex extends Vertex {
     kind = VertexKind.Data;
-    constructor() {
-        super();
-    }
 }
 
 export abstract class ControlVertex extends Vertex {
     kind = VertexKind.Control;
-    constructor() {
-        super();
-    }
 }
 
 export class ConstVertex extends DataVertex {
@@ -160,31 +154,18 @@ export class UnaryOperationVertex extends DataVertex {
 }
 
 export class IfVertex extends ControlVertex {
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "if";
     }
 }
 
 export class WhileVertex extends ControlVertex {
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "while";
     }
 }
 
 export class PhiVertex extends DataVertex {
-
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "phi";
     }
@@ -204,10 +185,6 @@ export class StartVertex extends ControlVertex {
 }
 
 export class CallVertex extends ControlVertex {
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "call";
     }
@@ -227,75 +204,42 @@ export class NewVertex extends ControlVertex {
 }
 
 export class DummyVertex extends ControlVertex {
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "dummy";
     }
 }
 
 export class MergeVertex extends ControlVertex {
-
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "merge";
     }
 }
 
 export class ReturnVertex extends ControlVertex {
-
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "return";
     }
 }
 
 export class ContinueVertex extends ControlVertex {
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "continue";
     }
 }
 
 export class BreakVertex extends ControlVertex {
-
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "break";
     }
 }
 
 export class LoadVertex extends ControlVertex {
-
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "load";
     }
 }
 
 export class StoreVertex extends ControlVertex {
-
-    constructor() {
-        super();
-    }
-
     public getLabel(): string {
         return this.getLabelPrefix() + "store";
     }
