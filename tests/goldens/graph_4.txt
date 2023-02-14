@@ -1,4 +1,0 @@
-digraph G {
-	0 [ label="0 | start (__entryPoint__)" shape="rectangle" ];
-	1 [ label="1 | Hello World" shape="rectangle" ];
-}
