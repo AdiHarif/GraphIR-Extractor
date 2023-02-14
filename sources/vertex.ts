@@ -120,7 +120,7 @@ export class StoreVertex extends ControlVertex {
     public readonly label = 'store'
 }
 
-export class SymbolVertex extends Vertex {
+export class SymbolVertex extends DataVertex {
     constructor(public readonly name: string) {
         super();
         this.label = `#${name}`;
