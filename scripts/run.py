@@ -267,8 +267,8 @@ class Stages:
     def _get_run_command(self, input_files):    
         node = 'node'
         entry_point_file = os.path.join(self.cfg.paths.build_dir, 'main.js')
-        output_file = os.path.join(self.cfg.paths.output_dir, self.cfg.output)
-        return [node, entry_point_file, output_file] + input_files
+        output_dir = self.cfg.paths.output_dir
+        return [node, entry_point_file, output_dir] + input_files
 
     def _collect_sources(self):
         sources = []

@@ -4,10 +4,10 @@ import { SymbolTable } from "./symbolTable";
 import { ConstTable } from "./constTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
-import { exportGraph } from "./outputManager";
+import { exportIrToRelations } from "./output/relations";
 
 class Analyzer {
-    private output: string;
+    private outDir: string;
     private sourceName: string;
     private graph: Graph;
     private symbolTable: SymbolTable;
@@ -21,7 +21,7 @@ class Analyzer {
     private patchingVariablesCounter: NodeId;
 
     public constructor( _output: string, _sourceName: string) {
-        this.output = _output;
+        this.outDir = _output;
         this.sourceName = _sourceName;
         this.graph = new Graph();
         this.symbolTable = new SymbolTable();
@@ -55,7 +55,7 @@ class Analyzer {
         let sourceFiles = program.getSourceFiles().filter((sourceFile: ts.SourceFile) => !sourceFile.isDeclarationFile);
         sourceFiles.forEach((sourceFile: ts.SourceFile) => this.processBlockStatements(sourceFile.statements));
 
-        this.graph.print(this.output);
+        this.graph.print(`${this.outDir}/graph.txt`);
 
         this.destroySymbolTable();
     }
@@ -810,11 +810,11 @@ class Analyzer {
 }
 
 function main() {
-    const output: string = process.argv[2]
+    const outDir: string = process.argv[2]
     const sourceName: string = process.argv[3];
-    let analyzer: Analyzer = new Analyzer(output, sourceName);
+    let analyzer: Analyzer = new Analyzer(outDir, sourceName);
     analyzer.run();
-    exportGraph(analyzer.getGraph())
+    exportIrToRelations(analyzer.getGraph(), outDir)
 }
 
 main();
