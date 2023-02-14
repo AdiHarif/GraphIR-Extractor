@@ -1,6 +1,6 @@
 import { NodeId, BinaryOperation, UnaryOperation } from "./types";
 
-enum VertexKind {
+export enum VertexKind {
     Control = 'control',
     Data = 'data'
 };

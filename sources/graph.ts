@@ -1,3 +1,4 @@
+import { irToDot } from "./output/dot";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
 
@@ -125,22 +126,8 @@ export class Graph {
         return this.vertices.get(nodeId) as vertex.Vertex;
     }
 
-    public print(humanFormat: boolean = false, filename: string | null = null): void {
-        let content: string = "";
-        if (humanFormat) {
-            this.edges.forEach(edge => {content += `source: ${edge.srcId}, dest: ${edge.dstId}, type: ${edge.label}`});
-            this.vertices.forEach(vertex => {content += `id: ${vertex.id}`});
-        }
-        else {
-            content = "digraph G {\n";
-            this.vertices.forEach(vertex => {
-                content += `\t${vertex.id} [ label="${vertex.getLabel()}" shape="${vertex.kind == "control" ? "diamond" : "rectangle"}" ];\n`
-            });
-            this.edges.forEach(edge => {
-                content += `\t${edge.srcId} -> ${edge.dstId} [ ${Graph.typeToStyle(edge.type, edge.label)} ];\n`
-            });
-            content += "}\n";
-        }
+    public print(filename: string | null = null): void {
+        const content = irToDot(this)
         if (filename) {
             const fs = require('fs');
             fs.writeFile(filename, content, err => {

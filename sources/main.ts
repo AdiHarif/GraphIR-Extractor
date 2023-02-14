@@ -55,7 +55,7 @@ class Analyzer {
         let sourceFiles = program.getSourceFiles().filter((sourceFile: ts.SourceFile) => !sourceFile.isDeclarationFile);
         sourceFiles.forEach((sourceFile: ts.SourceFile) => this.processBlockStatements(sourceFile.statements));
 
-        this.graph.print(false, this.output);
+        this.graph.print(this.output);
 
         this.destroySymbolTable();
     }
