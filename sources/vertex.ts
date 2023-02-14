@@ -68,58 +68,7 @@ export class BinaryOperationVertex extends DataVertex {
     }
 
     public getLabel(): string {
-        let operation: string;
-
-        switch(this.operation) {
-            case BinaryOperation.Add:
-                operation = "+";
-                break;
-            case BinaryOperation.Div:
-                operation = "/";
-                break;
-            case BinaryOperation.Mul:
-                operation = "*";
-                break;
-            case BinaryOperation.Sub:
-                operation = "-";
-                break;
-            case BinaryOperation.Assign:
-                operation = "=";
-                break;
-            case BinaryOperation.LessThan:
-                operation = "<";
-                break;
-            case BinaryOperation.GreaterThan:
-                operation = ">";
-                break;
-            case BinaryOperation.LessThanEqual:
-                operation = "<=";
-                break;
-            case BinaryOperation.GreaterThanEqual:
-                operation = ">=";
-                break;
-            case BinaryOperation.EqualEqual:
-                operation = "==";
-                break;
-            case BinaryOperation.NotEqual:
-                operation = "!=";
-                break;
-            case BinaryOperation.EqualEqualEqual:
-                operation = "===";
-                break;
-            case BinaryOperation.NotEqualEqual:
-                operation = "!==";
-                break;
-            case BinaryOperation.And:
-                operation = "&&";
-                break;
-            case BinaryOperation.Or:
-                operation = "||";
-                break;
-            default:
-                throw new Error(`Undefined vertex label`);
-        }
-
+        let operation: string = this.operation;
         return this.getLabelPrefix() + operation;
     }
 }
@@ -133,22 +82,7 @@ export class UnaryOperationVertex extends DataVertex {
     }
 
     public getLabel(): string {
-        let operation: string;
-
-        switch(this.operation) {
-            case UnaryOperation.Plus:
-                operation = "+";
-                break;
-            case UnaryOperation.Minus:
-                operation = "-";
-                break;
-            case UnaryOperation.Not:
-                operation = "!";
-                break;
-            default:
-                throw new Error(`Undefined vertex label`);
-        }
-
+        let operation: string = this.operation;
         return this.getLabelPrefix() + operation;
     }
 }

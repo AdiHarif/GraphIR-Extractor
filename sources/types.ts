@@ -1,27 +1,27 @@
 export type NodeId = number;
 
 export enum BinaryOperation {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Assign,
-    LessThan,
-    GreaterThan,
-    LessThanEqual,
-    GreaterThanEqual,
-    EqualEqual,
-    NotEqual,
-    EqualEqualEqual,
-    NotEqualEqual,
-    And,
-    Or
+    Add = '+',
+    Sub = '-',
+    Mul = '*',
+    Div = '/',
+    Assign = '=',
+    LessThan = '<',
+    GreaterThan = '>',
+    LessThanEqual = '<=',
+    GreaterThanEqual = '>=',
+    EqualEqual = '==',
+    NotEqual = '!=',
+    EqualEqualEqual = '===',
+    NotEqualEqual = '!==',
+    And = '&&',
+    Or = '||'
 }
 
 export enum UnaryOperation {
-    Plus,
-    Minus,
-    Not
+    Plus = '+',
+    Minus = '-',
+    Not = '!'
 }
 
 export enum VertexType {
