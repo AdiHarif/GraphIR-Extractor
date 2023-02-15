@@ -1,77 +1,33 @@
+
+import assert from 'assert'
+
 import { NodeId } from "./types";
 
-class Entry {
-    private name: string;
-    private nodeId: NodeId;
-
-    public constructor(_name: string, _nodeId: NodeId) {
-        this.name = _name;
-        this.nodeId = _nodeId;
-    }
-
-    public getName(): string {
-        return this.name;
-    }
-
-    public getNodeId(): NodeId {
-        return this.nodeId;
-    }
-
-    public updateNodeId(newNodeId: NodeId): void {
-        this.nodeId = newNodeId;
-    }    
-}
-
 class Scope {
-    public entries: Array<Entry>;
-
-    public constructor() {
-        this.entries = new Array<Entry>();
-    }
+    public entries: { [key: string]: NodeId } = {};
 
     public isEntryExists(name: string): boolean {
-        for (let entry of this.entries) {
-            if(entry.getName() === name) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public getEntry(name: string): Entry | undefined {
-        for (let entry of this.entries) {
-            if(entry.getName() === name) {
-                return entry;
-            }
-        }
-        return undefined;
+        return name in this.entries
     }
 
     public getEntryNodeId(name: string): NodeId | undefined {
-        let entry: Entry | undefined = this.getEntry(name);
-        if (entry === undefined) {
-            return undefined;
-        }
-        return entry.getNodeId();
+        return this.entries[name]
     }
 
     public addEntry(name: string, nodeId: NodeId): void {
-        let newEntry: Entry = new Entry(name, nodeId);
-        this.entries.unshift(newEntry);
+        assert(!this.isEntryExists(name))
+        this.entries[name] = nodeId
     }
 
     public updateEntryNodeId(name: string, nodeId: NodeId): void {
-        let entry: Entry | undefined = this.getEntry(name);
-        if (entry !== undefined) {
-            entry.updateNodeId(nodeId);
-        }
+        this.entries[name] = nodeId
     }
 
     //varNames - all the variables that can change in if blocks
     public getCopy(varNames: Set<string> | null, symbolTableCopy: Map<string, NodeId>) {
-        this.entries.forEach((entry: Entry) => {
-            if ((varNames === null || varNames.has(entry.getName())) && !symbolTableCopy.has(entry.getName())) {
-                symbolTableCopy.set(entry.getName(), entry.getNodeId());
+        Object.entries(this.entries).forEach(([name, nodeId]) => {
+            if ((varNames === null || varNames.has(name)) && !symbolTableCopy.has(name)) {
+                symbolTableCopy.set(name, nodeId);
             }
         });
     }
