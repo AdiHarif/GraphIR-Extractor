@@ -1,4 +1,4 @@
-import { irToDot } from "./output/dot";
+
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
 
@@ -124,21 +124,6 @@ export class Graph {
             throw new Error(`Vertex with node id ${nodeId} does not exist`);
         }
         return this.vertices.get(nodeId) as vertex.Vertex;
-    }
-
-    public print(filename: string | null = null): void {
-        const content = irToDot(this)
-        if (filename) {
-            const fs = require('fs');
-            fs.writeFile(filename, content, err => {
-                if (err) {
-                    console.error(err);
-                }
-            });
-        }
-        else {
-            console.log(content);
-        }
     }
 }
 

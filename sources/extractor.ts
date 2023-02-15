@@ -5,11 +5,8 @@ import { SymbolTable } from "./symbolTable";
 import { ConstTable } from "./constTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
-import * as ast from './ts-ast'
 
 export class Extractor {
-    private outDir: string;
-    private sourceName: string;
     private graph: Graph;
     private symbolTable: SymbolTable;
     private constTable: ConstTable;
@@ -21,9 +18,7 @@ export class Extractor {
     private currentBranchType: boolean;
     private patchingVariablesCounter: NodeId;
 
-    public constructor( _output: string, _sourceName: string) {
-        this.outDir = _output;
-        this.sourceName = _sourceName;
+    public constructor() {
         this.graph = new Graph();
         this.symbolTable = new SymbolTable();
         this.constTable = new ConstTable(this.graph);
@@ -36,28 +31,19 @@ export class Extractor {
         this.patchingVariablesCounter = -1;
     }
 
-    public run() {
-        this.buildGraph();
-    }
-
-    public getGraph() {
-        return this.graph;
-    }
-
     private static getIdentifierName(name: ts.Identifier | ts.PropertyName): string{
         return (name as any).escapedText;
     }
 
-    private buildGraph() {
+    public extractIr(ast: ts.SourceFile): Graph {
         this.initGraph();
         this.initSymbolTable();
 
-        const sourceFile = ast.parseFile(this.sourceName)
-        this.processBlockStatements(sourceFile.statements);
-
-        this.graph.print(`${this.outDir}/graph.txt`);
+        this.processBlockStatements(ast.statements)
 
         this.destroySymbolTable();
+
+        return this.graph
     }
 
     private initGraph(): void {

@@ -1,4 +1,5 @@
 
+import * as fs from 'fs/promises'
 import * as gviz from 'ts-graphviz'
 
 import { EdgeType, Graph } from '../graph'
@@ -31,6 +32,7 @@ function irToModel(graph: Graph): gviz.Digraph {
     return digraph
 }
 
-export function irToDot(graph: Graph): string {
-    return gviz.toDot(irToModel(graph))
+export function exportIrToDot(graph: Graph, outDir: string) {
+    const outString: string =  gviz.toDot(irToModel(graph))
+    fs.writeFile(`${outDir}/graph.dot`, outString);
 }
