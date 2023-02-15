@@ -1,9 +1,11 @@
 import * as ts from "typescript";
+
 import { Graph, Edge, EdgeType } from "./graph";
 import { SymbolTable } from "./symbolTable";
 import { ConstTable } from "./constTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
+import * as ast from './ts-ast'
 
 export class Extractor {
     private outDir: string;
@@ -50,9 +52,8 @@ export class Extractor {
         this.initGraph();
         this.initSymbolTable();
 
-        const program = ts.createProgram([this.sourceName], {});
-        let sourceFiles = program.getSourceFiles().filter((sourceFile: ts.SourceFile) => !sourceFile.isDeclarationFile);
-        sourceFiles.forEach((sourceFile: ts.SourceFile) => this.processBlockStatements(sourceFile.statements));
+        const sourceFile = ast.parseFile(this.sourceName)
+        this.processBlockStatements(sourceFile.statements);
 
         this.graph.print(`${this.outDir}/graph.txt`);
 
