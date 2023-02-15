@@ -1,5 +1,5 @@
 
-import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
+import { NodeId, VertexType } from "./types";
 import * as vertex from "./vertex";
 
 
@@ -16,19 +16,6 @@ export class Graph {
     public constructor() {
         this.edges = new Array<Edge>();
         this.vertices = new Map<NodeId, vertex.Vertex>();
-    }
-
-    private static typeToStyle(type: EdgeType, label: string) {
-        switch(type) {
-            case EdgeType.Control:
-                return `label="${label}"`;
-            case EdgeType.Data:
-                return `label="${label}" arrowhead="empty"`;
-            case EdgeType.Association:
-                return `label="${label}", style=dashed, dir=none`;
-            default:
-                throw new Error('Unknown edge type');
-        }
     }
 
     public getEdgesWithNegativeSource(): Array<Edge> {
