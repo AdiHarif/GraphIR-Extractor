@@ -54,9 +54,9 @@ export class SymbolTable {
     }
 
     public updateNodeId(name: string, nodeId: NodeId): void {
-        let updated: boolean = false;
+        let updated = false;
 
-        for (let scope of this.scopes) {
+        for (const scope of this.scopes) {
             if (scope.isEntryExists(name)) {
                 scope.updateEntryNodeId(name, nodeId);
                 updated = true;
@@ -70,7 +70,7 @@ export class SymbolTable {
     }
 
     public addSymbol(name: string, nodeId: NodeId): void {
-        let currentScope: Scope = this.getCurrentScope();
+        const currentScope: Scope = this.getCurrentScope();
         if (currentScope.isEntryExists(name)) {
             throw new Error(`Symbol '${name}' already exists in the symbol table`);
         }
@@ -78,7 +78,7 @@ export class SymbolTable {
     }
 
     public getIdByName(name: string): NodeId {
-        for (let scope of this.scopes) {
+        for (const scope of this.scopes) {
             if (scope.isEntryExists(name)) {
                 return scope.getEntryNodeId(name) as NodeId;
             }
@@ -88,7 +88,7 @@ export class SymbolTable {
     }
 
     public getCopy(varNames: Set<string> | null = null): Map<string, NodeId> {
-        let symbolTableCopy: Map<string, NodeId> = new Map<string, NodeId>();
+        const symbolTableCopy: Map<string, NodeId> = new Map<string, NodeId>();
 
         this.scopes.forEach((scope: Scope) => {
             scope.getCopy(varNames, symbolTableCopy);

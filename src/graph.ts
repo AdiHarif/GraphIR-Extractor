@@ -26,7 +26,7 @@ export class Graph {
     }
 
     public getEdgesWithNegativeSource(): Array<Edge> {
-        let edgesWithNegativeSource: Array<Edge> = new Array<Edge>();
+        const edgesWithNegativeSource: Array<Edge> = new Array<Edge>();
         this.edges.forEach((edge: Edge) => {
             if (edge.srcId < 0) {
                 edgesWithNegativeSource.push(edge);
@@ -43,11 +43,11 @@ export class Graph {
         //     throw new Error(`Vertex with id ${dstId} does not exist`);
         // }
 
-        let newEdge: Edge = new Edge(srcId, dstId, label, type);
+        const newEdge: Edge = new Edge(srcId, dstId, label, type);
         this.edges.push(newEdge);
     }
 
-    public addVertex(vertexType: VertexType, properties: Object = {}): NodeId {
+    public addVertex(vertexType: VertexType, properties: unknown = {}): NodeId {
         let newVertex: vertex.Vertex;
         switch (vertexType) {
             case VertexType.Const:
@@ -117,7 +117,7 @@ export class Graph {
 
     public getVertexById(nodeId: NodeId): vertex.Vertex {
         for (const subgraph of this.subGraphs) {
-            const v = this.getVertexById(nodeId)
+            const v = subgraph.getVertexById(nodeId)
             if (v) {
                 return v
             }

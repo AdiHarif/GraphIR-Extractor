@@ -33,7 +33,7 @@ export abstract class ControlVertex extends Vertex {
 }
 
 export class ConstVertex extends DataVertex {
-    constructor(public readonly value: any) {
+    constructor(public readonly value: string | number) {
         super();
         this.label = String(value);
     }

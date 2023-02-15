@@ -32,7 +32,7 @@ export class Extractor {
     }
 
     private static getIdentifierName(name: ts.Identifier | ts.PropertyName): string{
-        return (name as any).escapedText;
+        return name['escapedText'];
     }
 
     public extractIr(ast: ts.SourceFile): Graph {
@@ -59,17 +59,17 @@ export class Extractor {
     }
 
     private nextControl(nextControlId: NodeId) {
-        let currentControlVertex: vertex.Vertex = this.graph.getVertexById(this.controlVertex);
+        const currentControlVertex: vertex.Vertex = this.graph.getVertexById(this.controlVertex);
         // if (!currentControlVertex) {
         //     throw new Error(`Vertex with id ${this.controlVertex} does not exist`);
         // }
-        let doNotCreateEdge: boolean = currentControlVertex instanceof vertex.ReturnVertex ||
+        const doNotCreateEdge: boolean = currentControlVertex instanceof vertex.ReturnVertex ||
                                        currentControlVertex instanceof vertex.ContinueVertex ||
                                        currentControlVertex instanceof vertex.BreakVertex;
         if (!doNotCreateEdge) {
-            let isBranchVertex = currentControlVertex instanceof vertex.IfVertex ||
+            const isBranchVertex = currentControlVertex instanceof vertex.IfVertex ||
                                  currentControlVertex instanceof vertex.WhileVertex;
-            let edgeLabel: string = isBranchVertex ? String(this.currentBranchType) + "-control" : "control";
+            const edgeLabel: string = isBranchVertex ? String(this.currentBranchType) + "-control" : "control";
             this.graph.addEdge(this.controlVertex, nextControlId, edgeLabel, EdgeType.Control);
         }
         this.controlVertex = nextControlId;
@@ -80,15 +80,15 @@ export class Extractor {
     }
 
     private backpatchBreakEdges(): void {
-        let currentBreakList: Array<NodeId> = this.breakStack[0];
-        for (let breakNodeId of currentBreakList) {
+        const currentBreakList: Array<NodeId> = this.breakStack[0];
+        for (const breakNodeId of currentBreakList) {
             this.graph.addEdge(breakNodeId, this.controlVertex, "control", EdgeType.Control);
         }
         this.breakStack.shift(); // pop the last break list
     }
 
     private processBlockStatements(statements: ts.NodeArray<ts.Statement> | Array<ts.Statement>): void {
-        let postponedFunctionStatements: Array<ts.FunctionDeclaration> = [];
+        const postponedFunctionStatements: Array<ts.FunctionDeclaration> = [];
         this.symbolTable.addNewScope();
 
         //supports function definition after they are used
@@ -122,10 +122,10 @@ export class Extractor {
                     this.processWhileStatement(statement as ts.WhileStatement);
                     break;
                 case ts.SyntaxKind.ContinueStatement:
-                    this.processContinueStatement(statement as ts.ContinueStatement);
+                    this.emitContinueNode();
                     break;
                 case ts.SyntaxKind.BreakStatement:
-                    this.processBreakStatement(statement as ts.BreakStatement);
+                    this.emitBreakNode();
                     break;
                 default:
                     throw new Error(`not implemented`);
@@ -138,8 +138,8 @@ export class Extractor {
 
     private processParameters(parametersList: ts.NodeArray<ts.ParameterDeclaration>, startNodeId: NodeId): void {
         parametersList.forEach((parameter: ts.ParameterDeclaration, position: number) => {
-            let parameterName: string = (parameter.name as any).escapedText;
-            let parameterNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: position + 1});
+            const parameterName: string = parameter.name['escapedText'];
+            const parameterNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: position + 1});
             this.graph.addEdge(parameterNodeId, startNodeId, "association", EdgeType.Association);
             this.symbolTable.addSymbol(parameterName, parameterNodeId);
         });
@@ -147,12 +147,12 @@ export class Extractor {
 
     //supports cases in which function's definition uses variable that is declared only after the definition
     private processPostponedFunctionStatements(postponedFunctionStatements: Array<ts.FunctionDeclaration>): void {
-        let prevControlVertex: NodeId = this.controlVertex;
+        const prevControlVertex: NodeId = this.controlVertex;
 
         postponedFunctionStatements.forEach((funcDeclaration: ts.FunctionDeclaration) => {
-            let funcName: string = (funcDeclaration.name as any).escapedText;
-            let funcStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: funcName});
-            let funcSymbolNodeId: NodeId = this.symbolTable.getIdByName(funcName);
+            const funcName: string = funcDeclaration.name['escapedText'] as string;
+            const funcStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: funcName});
+            const funcSymbolNodeId: NodeId = this.symbolTable.getIdByName(funcName);
             this.graph.addEdge(funcStartNodeId, funcSymbolNodeId, "association", EdgeType.Association);
             this.controlVertex = funcStartNodeId;
 
@@ -170,15 +170,15 @@ export class Extractor {
     }
 
     private processFunctionDeclaration(funcDeclaration: ts.FunctionDeclaration): void {
-        let funcName: string = (funcDeclaration.name as any).escapedText;
-        let funcSymbolNodeId: NodeId = this.graph.addVertex(VertexType.Symbol, {name: funcName});
+        const funcName: string = funcDeclaration.name['escapedText'] as string;
+        const funcSymbolNodeId: NodeId = this.graph.addVertex(VertexType.Symbol, {name: funcName});
         this.symbolTable.addSymbol(funcName, funcSymbolNodeId);
     }
 
     private processClassDeclaration(classDeclaration: ts.ClassDeclaration): void {
-        let className: string = (classDeclaration.name as any).escapedText;
+        const className: string = classDeclaration.name['escapedText'] as string;
         this.classesStack.unshift(className);
-        for (let member of classDeclaration.members) {
+        for (const member of classDeclaration.members) {
             switch (member.kind) {
                 case ts.SyntaxKind.Constructor:
                     this.processMethodDeclaration(member as ts.ConstructorDeclaration, true);
@@ -205,17 +205,17 @@ export class Extractor {
             methodName = this.classesStack[0] + '::' + Extractor.getIdentifierName((methodDecl as ts.MethodDeclaration).name);
         }
 
-        let methodStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: methodName});
+        const methodStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: methodName});
         // This symbol is not used, but adding it
         // to the symbol table does no harm
         this.symbolTable.addSymbol(methodName, methodStartNodeId);
-        let prevControlVertex: NodeId = this.controlVertex;
+        const prevControlVertex: NodeId = this.controlVertex;
         this.controlVertex = methodStartNodeId;
 
         this.symbolTable.addNewScope();
         this.functionsStack.unshift(methodStartNodeId);
 
-        let thisNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: 0, funcId: methodStartNodeId});
+        const thisNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: 0, funcId: methodStartNodeId});
         this.graph.addEdge(thisNodeId, methodStartNodeId, "association", EdgeType.Association);
         this.symbolTable.addSymbol('this', thisNodeId);
         this.processParameters(methodDecl.parameters, methodStartNodeId);
@@ -252,14 +252,14 @@ export class Extractor {
     }
 
     private processCallExpression(callExpression: ts.CallExpression): NodeId {
-        let callNodeId: NodeId = this.graph.addVertex(VertexType.Call);
+        const callNodeId: NodeId = this.graph.addVertex(VertexType.Call);
 
         callExpression.arguments.forEach((argument, pos) => {
-            let argumentNodeId: NodeId = this.processExpression(argument);
+            const argumentNodeId: NodeId = this.processExpression(argument);
             this.graph.addEdge(argumentNodeId, callNodeId, "pos: " + String(pos + 1), EdgeType.Data);
         });
 
-        let callableExpNodeId: NodeId = this.processExpression(callExpression.expression);
+        const callableExpNodeId: NodeId = this.processExpression(callExpression.expression);
         this.graph.addEdge(callableExpNodeId, callNodeId, "callable",  EdgeType.Data);
         this.nextControl(callNodeId);
 
@@ -267,18 +267,18 @@ export class Extractor {
     }
 
     private processNewExpression(newExpression: ts.NewExpression): NodeId {
-        let className: string = Extractor.getIdentifierName(newExpression.expression as ts.Identifier);
-        let newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: className});
+        const className: string = Extractor.getIdentifierName(newExpression.expression as ts.Identifier);
+        const newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: className});
 
         if (newExpression.arguments !== undefined) {
             newExpression.arguments.forEach((argument, pos) => {
-                let argumentNodeId: NodeId = this.processExpression(argument);
+                const argumentNodeId: NodeId = this.processExpression(argument);
                 this.graph.addEdge(argumentNodeId, newNodeId, "pos: " + String(pos + 1), EdgeType.Data);
             });
         }
 
-        let constructorName: string = className + "::constructor";
-        let constructorNodeId: NodeId = this.symbolTable.getIdByName(constructorName);
+        const constructorName: string = className + "::constructor";
+        const constructorNodeId: NodeId = this.symbolTable.getIdByName(constructorName);
         this.graph.addEdge(constructorNodeId, newNodeId, "callable", EdgeType.Data);
         this.nextControl(newNodeId);
         return newNodeId;
@@ -289,14 +289,14 @@ export class Extractor {
             this.processBlockStatements((statement as ts.Block).statements); 
         }
         else{
-            let block: Array<ts.Statement> = [statement];
+            const block: Array<ts.Statement> = [statement];
             this.processBlockStatements(block);
         }
     }
 
     private prepareForWhileStatementPatching(symbolTableCopy: Map<string, NodeId>, ): [NodeId, Map<NodeId, string>] {
-        let previousPatchingVariablesCounter: NodeId = this.patchingVariablesCounter;
-        let patchingIdToVarName: Map<NodeId, string> = new Map<NodeId, string>();
+        const previousPatchingVariablesCounter: NodeId = this.patchingVariablesCounter;
+        const patchingIdToVarName: Map<NodeId, string> = new Map<NodeId, string>();
         symbolTableCopy.forEach((nodeId: NodeId, varName: string) => {
             this.symbolTable.updateNodeId(varName, this.patchingVariablesCounter);
             patchingIdToVarName.set(this.patchingVariablesCounter, varName);
@@ -306,18 +306,18 @@ export class Extractor {
     }
 
     private whileStatementPatching(patchingIdToVarName: Map<NodeId, string>): void {
-        let edgesWithNegativeSource: Array<Edge> = this.graph.getEdgesWithNegativeSource();
+        const edgesWithNegativeSource: Array<Edge> = this.graph.getEdgesWithNegativeSource();
         edgesWithNegativeSource.forEach((edge: Edge) => {
-            let varName: string = patchingIdToVarName.get(edge.srcId) as string;
-            let nodeId: NodeId = this.symbolTable.getIdByName(varName);
+            const varName: string = patchingIdToVarName.get(edge.srcId) as string;
+            const nodeId: NodeId = this.symbolTable.getIdByName(varName);
             edge.srcId = nodeId;
         });
     }
 
     private processBranchChangedVars(symbolTableCopy: Map<string, NodeId>): Map<string, NodeId> {
-        let changedVars: Map<string, NodeId> = new Map<string, NodeId>();
+        const changedVars: Map<string, NodeId> = new Map<string, NodeId>();
         symbolTableCopy.forEach((nodeId: NodeId, varName: string) => {
-            let currentNodeId: NodeId = this.symbolTable.getIdByName(varName);
+            const currentNodeId: NodeId = this.symbolTable.getIdByName(varName);
             this.symbolTable.updateNodeId(varName, nodeId); // we can recover the nodeId anyway
             if (currentNodeId >= 0 && currentNodeId !== nodeId) { // the variable was changed during the block
                 changedVars.set(varName, currentNodeId);
@@ -326,40 +326,40 @@ export class Extractor {
         return changedVars;
     }
 
-    private processContinueStatement(continueStatement: ts.ContinueStatement): void {
-        let continueNodeId: NodeId = this.graph.addVertex(VertexType.Continue);
+    private emitContinueNode(): void {
+        const continueNodeId: NodeId = this.graph.addVertex(VertexType.Continue);
         this.nextControl(continueNodeId);
         this.graph.addEdge(continueNodeId, this.whileStack[0], "control", EdgeType.Control);
     }
 
-    private processBreakStatement(breakStatement: ts.BreakStatement): void {
-        let breakNodeId: NodeId = this.graph.addVertex(VertexType.Break);
+    private emitBreakNode(): void {
+        const breakNodeId: NodeId = this.graph.addVertex(VertexType.Break);
         this.nextControl(breakNodeId);
         this.breakStack[0].push(breakNodeId);
     }
 
     private processWhileStatement(whileStatement: ts.WhileStatement): void {
-        let preMergeControlVertex: NodeId = this.controlVertex;
-        let whileNodeId: NodeId = this.graph.addVertex(VertexType.While);
-        let mergeNodeId: NodeId = this.graph.addVertex(VertexType.Merge);
+        const preMergeControlVertex: NodeId = this.controlVertex;
+        const whileNodeId: NodeId = this.graph.addVertex(VertexType.While);
+        const mergeNodeId: NodeId = this.graph.addVertex(VertexType.Merge);
         this.graph.addEdge(whileNodeId, mergeNodeId, "association", EdgeType.Association);
 
         this.whileStack.unshift(mergeNodeId);
         this.breakStack.unshift(new Array<NodeId>()); // the list is popped right after backpatching it inside nextControl()
 
-        let symbolTableCopy: Map<string, NodeId> = this.symbolTable.getCopy();
-        let [previousPatchingVariablesCounter, patchingIdToVarName] = this.prepareForWhileStatementPatching(symbolTableCopy);
+        const symbolTableCopy: Map<string, NodeId> = this.symbolTable.getCopy();
+        const [previousPatchingVariablesCounter, patchingIdToVarName] = this.prepareForWhileStatementPatching(symbolTableCopy);
 
-        let expNodeId: NodeId = this.processExpression(whileStatement.expression);
+        const expNodeId: NodeId = this.processExpression(whileStatement.expression);
         this.graph.addEdge(expNodeId, whileNodeId, "condition",  EdgeType.Data);
         this.currentBranchType = true;
         this.nextControl(mergeNodeId);
         this.nextControl(whileNodeId);
         this.processBranchBlockWrapper(whileStatement.statement);
 
-        let lastTrueBranchControlVertex: NodeId = this.getLastBranchControlVertex(whileNodeId);
+        const lastTrueBranchControlVertex: NodeId = this.getLastBranchControlVertex(whileNodeId);
 
-        let changedVars: Map<string, NodeId> = this.processBranchChangedVars(symbolTableCopy);
+        const changedVars: Map<string, NodeId> = this.processBranchChangedVars(symbolTableCopy);
         this.createPhiVertices(symbolTableCopy, changedVars, new Map<string, NodeId>(),
                                mergeNodeId, lastTrueBranchControlVertex, preMergeControlVertex);
 
@@ -373,24 +373,24 @@ export class Extractor {
     }
 
     private processIfStatement(ifStatement: ts.IfStatement): void {
-        let expNodeId: NodeId = this.processExpression(ifStatement.expression);
+        const expNodeId: NodeId = this.processExpression(ifStatement.expression);
 
-        let ifNodeId: NodeId = this.graph.addVertex(VertexType.If);
+        const ifNodeId: NodeId = this.graph.addVertex(VertexType.If);
         this.nextControl(ifNodeId);
 
         this.graph.addEdge(expNodeId, ifNodeId, "condition", EdgeType.Data);
 
-        let symbolTableCopy: Map<string, NodeId> = this.symbolTable.getCopy();
+        const symbolTableCopy: Map<string, NodeId> = this.symbolTable.getCopy();
 
-        let mergeNodeId: NodeId = this.graph.addVertex(VertexType.Merge);
+        const mergeNodeId: NodeId = this.graph.addVertex(VertexType.Merge);
         this.graph.addEdge(ifNodeId, mergeNodeId, "association", EdgeType.Association);
 
         this.currentBranchType = true;
         this.processBranchBlockWrapper(ifStatement.thenStatement);
 
-        let trueBranchChangedVars: Map<string, NodeId> = this.processBranchChangedVars(symbolTableCopy);
+        const trueBranchChangedVars: Map<string, NodeId> = this.processBranchChangedVars(symbolTableCopy);
 
-        let lastTrueBranchControlVertex: NodeId = this.getLastBranchControlVertex(ifNodeId);
+        const lastTrueBranchControlVertex: NodeId = this.getLastBranchControlVertex(ifNodeId);
         this.nextControl(mergeNodeId);
         this.controlVertex = ifNodeId;
 
@@ -408,7 +408,7 @@ export class Extractor {
             falseBranchChangedVars = this.processBranchChangedVars(symbolTableCopy);
         }
 
-        let lastFalseBranchControlVertex: NodeId = this.getLastBranchControlVertex(ifNodeId);
+        const lastFalseBranchControlVertex: NodeId = this.getLastBranchControlVertex(ifNodeId);
         this.nextControl(mergeNodeId);
 
         this.createPhiVertices(symbolTableCopy, trueBranchChangedVars, falseBranchChangedVars,
@@ -419,7 +419,7 @@ export class Extractor {
         // when there are no control vertices inside the branch block, we want to create a dummy
         // node for the matching phi vertices.
         if (StartBlockNodeId === this.controlVertex) {
-            let dummyNodeId: NodeId = this.graph.addVertex(VertexType.Dummy, {});
+            const dummyNodeId: NodeId = this.graph.addVertex(VertexType.Dummy, {});
             this.nextControl(dummyNodeId);
             return dummyNodeId;
         }
@@ -433,10 +433,10 @@ export class Extractor {
                               lastTrueBranchControlVertex: NodeId,
                               lastFalseBranchControlVertex: NodeId): void {
         symbolTableCopy.forEach((nodeId: NodeId, varName: string) => {
-            let trueBranchNodeId = trueBranchSymbolTable.get(varName);
-            let falseBranchNodeId = falseBranchSymbolTable.get(varName);
+            const trueBranchNodeId = trueBranchSymbolTable.get(varName);
+            const falseBranchNodeId = falseBranchSymbolTable.get(varName);
 
-            let phiEdgesLabels = {
+            const phiEdgesLabels = {
                 true: "from " + String(lastTrueBranchControlVertex),
                 false: "from " + String(lastFalseBranchControlVertex)
             };
@@ -448,7 +448,7 @@ export class Extractor {
                 }
             }
             else {
-                let phiNodeId: NodeId = this.graph.addVertex(VertexType.Phi, {mergeId: mergeNodeId});
+                const phiNodeId: NodeId = this.graph.addVertex(VertexType.Phi, {mergeId: mergeNodeId});
                 this.graph.addEdge(phiNodeId, mergeNodeId, "association", EdgeType.Association);
 
                 if (trueBranchNodeId && falseBranchNodeId) {
@@ -473,13 +473,13 @@ export class Extractor {
     }
 
     private processReturnStatement(retStatement: ts.ReturnStatement): void {
-        let currentFuncNodeId: NodeId = this.functionsStack[0];
-        let returnNodeId: NodeId = this.graph.addVertex(VertexType.Return);
+        const currentFuncNodeId: NodeId = this.functionsStack[0];
+        const returnNodeId: NodeId = this.graph.addVertex(VertexType.Return);
         this.graph.addEdge(returnNodeId, currentFuncNodeId, "association", EdgeType.Association);
         this.nextControl(returnNodeId);
 
         if (retStatement.expression !== undefined) {
-            let expNodeId: NodeId = this.processExpression(retStatement.expression);
+            const expNodeId: NodeId = this.processExpression(retStatement.expression);
             this.graph.addEdge(expNodeId, returnNodeId, "value", EdgeType.Data)
         }
     }
@@ -497,10 +497,10 @@ export class Extractor {
     }
 
     private processVariableDeclaration(varDecl: ts.VariableDeclaration): void {
-        let varName: string = (varDecl.name as any).escapedText;
+        const varName: string = varDecl.name['escapedText'];
 
         if (varDecl.initializer !== undefined) {
-            let expNodeId: NodeId = this.processExpression(varDecl.initializer as ts.Expression);
+            const expNodeId: NodeId = this.processExpression(varDecl.initializer as ts.Expression);
             this.symbolTable.addSymbol(varName, expNodeId);
         }
         else {
@@ -518,10 +518,10 @@ export class Extractor {
                 expNodeId = this.processStringLiteral(expression as ts.StringLiteral);
                 break;
             case ts.SyntaxKind.TrueKeyword:
-                expNodeId = this.processTrueLiteral(expression as ts.TrueLiteral);
+                expNodeId = this.emitTrueLiteralNode();
                 break;
             case ts.SyntaxKind.FalseKeyword:
-                expNodeId = this.processFalseLiteral(expression as ts.FalseLiteral);
+                expNodeId = this.emitFalseLiteralNode();
                 break;
             case ts.SyntaxKind.PrefixUnaryExpression:
                 expNodeId = this.processPrefixUnaryExpression(expression as ts.PrefixUnaryExpression);
@@ -548,7 +548,7 @@ export class Extractor {
                 expNodeId = this.processElementAccessExpression(expression as ts.ElementAccessExpression);
                 break;
             case ts.SyntaxKind.ThisKeyword:
-                expNodeId = this.processThisExpression(expression as ts.ThisExpression);
+                expNodeId = this.emitThisNode();
                 break;
             case ts.SyntaxKind.ArrayLiteralExpression:
                 expNodeId = this.processArrayLiteralExpression(expression as ts.ArrayLiteralExpression);
@@ -566,12 +566,12 @@ export class Extractor {
     }
 
     private processArrayLiteralExpression(arrayLiteralExp: ts.ArrayLiteralExpression): NodeId {
-        let newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: "Array"});
+        const newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: "Array"});
         this.nextControl(newNodeId);
 
         arrayLiteralExp.elements.forEach((element: ts.Expression, index: number) => {
-            let expNodeId: NodeId = this.processExpression(element);
-            let indexNodeId: NodeId = this.constTable.getNodeId(String(index), true);
+            const expNodeId: NodeId = this.processExpression(element);
+            const indexNodeId: NodeId = this.constTable.getNodeId(String(index), true);
             this.createStoreNode(expNodeId, newNodeId, indexNodeId);
         });
 
@@ -579,13 +579,13 @@ export class Extractor {
     }
 
     private processObjectLiteralExpression(objectLiteralExp: ts.ObjectLiteralExpression): NodeId {
-        let newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: "Object"});
+        const newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: "Object"});
         this.nextControl(newNodeId);
 
         objectLiteralExp.properties.forEach((newProperty: ts.ObjectLiteralElementLike) => {
-            let expNodeId: NodeId = this.processExpression((newProperty as ts.PropertyAssignment).initializer);
-            let propertyName: String = Extractor.getIdentifierName((newProperty as ts.PropertyAssignment).name);
-            let propertyNodeId: NodeId = this.constTable.getNodeId(propertyName, true);
+            const expNodeId: NodeId = this.processExpression((newProperty as ts.PropertyAssignment).initializer);
+            const propertyName: string = Extractor.getIdentifierName((newProperty as ts.PropertyAssignment).name);
+            const propertyNodeId: NodeId = this.constTable.getNodeId(propertyName, true);
             this.createStoreNode(expNodeId, newNodeId, propertyNodeId);
         });
 
@@ -593,15 +593,15 @@ export class Extractor {
     }
 
     private processFunctionExpression(funcExp: ts.FunctionExpression): NodeId {
-        let prevControlVertex: NodeId = this.controlVertex;
+        const prevControlVertex: NodeId = this.controlVertex;
 
-        let funcStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: "__anonymousFunction__"});
+        const funcStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: "__anonymousFunction__"});
         this.controlVertex = funcStartNodeId;
 
         this.symbolTable.addNewScope();
         this.functionsStack.unshift(funcStartNodeId);
 
-        let thisNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: 0});
+        const thisNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: 0});
         this.graph.addEdge(thisNodeId, funcStartNodeId, "association", EdgeType.Association);
         this.symbolTable.addSymbol('this', thisNodeId);
         this.processParameters(funcExp.parameters, funcStartNodeId);
@@ -615,12 +615,12 @@ export class Extractor {
         return funcStartNodeId;
     }
 
-    private processThisExpression(thisExpression: ts.ThisExpression): NodeId {
+    private emitThisNode(): NodeId {
         return this.symbolTable.getIdByName('this');
     }
 
     private processNumericLiteral(numLiteral: ts.NumericLiteral): NodeId {
-        let value: number = Number(numLiteral.text);
+        const value = Number(numLiteral.text);
 
         return this.constTable.getNodeId(value);
     }
@@ -629,16 +629,16 @@ export class Extractor {
         return this.constTable.getNodeId(strLiteral.text);
     }
 
-    private processTrueLiteral(trueLiteral: ts.TrueLiteral): NodeId {
+    private emitTrueLiteralNode(): NodeId {
         return this.constTable.getNodeId(true);
     }
 
-    private processFalseLiteral(falseLiteral: ts.FalseLiteral): NodeId {
+    private emitFalseLiteralNode(): NodeId {
         return this.constTable.getNodeId(false);
     }
 
     private processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression): NodeId {
-        let expNodeId: NodeId = this.processExpression(prefixUnaryExpression.operand as ts.Expression);
+        const expNodeId: NodeId = this.processExpression(prefixUnaryExpression.operand as ts.Expression);
         let unaryOperation: UnaryOperation;
         switch(prefixUnaryExpression.operator){
             case ts.SyntaxKind.PlusToken:
@@ -653,14 +653,14 @@ export class Extractor {
             default:
                 throw new Error(`not implemented`);
         }
-        let operationNodeId: NodeId = this.graph.addVertex(VertexType.UnaryOperation, {operation: unaryOperation});
+        const operationNodeId: NodeId = this.graph.addVertex(VertexType.UnaryOperation, {operation: unaryOperation});
         this.graph.addEdge(expNodeId, operationNodeId, "prefix", EdgeType.Data);
         return operationNodeId;
     }
 
     private processBinaryExpression(binExpression: ts.BinaryExpression): NodeId {
         let binaryOperation: BinaryOperation;
-        let isAssignOperation: boolean = false;
+        let isAssignOperation = false;
 
         switch (binExpression.operatorToken.kind) {
             case ts.SyntaxKind.PlusToken:
@@ -713,20 +713,20 @@ export class Extractor {
                 throw new Error(`not implemented`);
         }
 
-        let rightNodeId: NodeId = this.processExpression(binExpression.right);
+        const rightNodeId: NodeId = this.processExpression(binExpression.right);
         if (isAssignOperation) {
             // for cases a variable that is already defined is being re-assigned
-            let leftExpression: ts.Expression = binExpression.left;
+            const leftExpression: ts.Expression = binExpression.left;
             if (leftExpression.kind === ts.SyntaxKind.PropertyAccessExpression) {
-                let [objectNodeId, propertyNodeId]: [NodeId, NodeId] = this.getPropertyAccessArguments(leftExpression as ts.PropertyAccessExpression);
+                const [objectNodeId, propertyNodeId]: [NodeId, NodeId] = this.getPropertyAccessArguments(leftExpression as ts.PropertyAccessExpression);
                 return this.createStoreNode(rightNodeId, objectNodeId, propertyNodeId);
             }
             else if (leftExpression.kind === ts.SyntaxKind.ElementAccessExpression) {
-                let [objectNodeId, propertyArgumentNodeId] : [NodeId, NodeId] = this.getElementAccessArguments(leftExpression as ts.ElementAccessExpression);
+                const [objectNodeId, propertyArgumentNodeId] : [NodeId, NodeId] = this.getElementAccessArguments(leftExpression as ts.ElementAccessExpression);
                 return this.createStoreNode(rightNodeId, objectNodeId, propertyArgumentNodeId);
             }
             else if (leftExpression.kind === ts.SyntaxKind.Identifier) {
-                let varName: string = (binExpression.left as any).escapedText;
+                const varName: string = binExpression.left['escapedText'];
                 this.symbolTable.updateNodeId(varName, rightNodeId);
                 return rightNodeId;
             }
@@ -735,8 +735,8 @@ export class Extractor {
             }
         }
         else {
-            let leftNodeId: NodeId = this.processExpression(binExpression.left);
-            let operationNodeId: NodeId = this.graph.addVertex(VertexType.BinaryOperation, {operation: binaryOperation});
+            const leftNodeId: NodeId = this.processExpression(binExpression.left);
+            const operationNodeId: NodeId = this.graph.addVertex(VertexType.BinaryOperation, {operation: binaryOperation});
             this.graph.addEdge(rightNodeId, operationNodeId, "right", EdgeType.Data);
             this.graph.addEdge(leftNodeId, operationNodeId, "left", EdgeType.Data);
             return operationNodeId;
@@ -744,20 +744,20 @@ export class Extractor {
     }
 
     private getPropertyAccessArguments(propertyAccessExpression: ts.PropertyAccessExpression): [NodeId, NodeId] {
-        let propertyName: string = Extractor.getIdentifierName((propertyAccessExpression.name) as ts.Identifier);
-        let properyNodeId: NodeId = this.constTable.getNodeId(propertyName, true);
-        let objectNodeId: NodeId = this.processExpression(propertyAccessExpression.expression);
+        const propertyName: string = Extractor.getIdentifierName((propertyAccessExpression.name) as ts.Identifier);
+        const properyNodeId: NodeId = this.constTable.getNodeId(propertyName, true);
+        const objectNodeId: NodeId = this.processExpression(propertyAccessExpression.expression);
         return [objectNodeId, properyNodeId];
     }
 
     private getElementAccessArguments(elementAccessExpression: ts.ElementAccessExpression): [NodeId, NodeId] {
-        let propertyArgumentNodeId: NodeId = this.processExpression(elementAccessExpression.argumentExpression);
-        let objectNodeId: NodeId = this.processExpression(elementAccessExpression.expression);
+        const propertyArgumentNodeId: NodeId = this.processExpression(elementAccessExpression.argumentExpression);
+        const objectNodeId: NodeId = this.processExpression(elementAccessExpression.expression);
         return [objectNodeId, propertyArgumentNodeId];
     }
 
     private createStoreNode(valueNodeId: NodeId, objectNodeId: NodeId, propertyNodeId: NodeId): NodeId {
-        let storeNodeId: NodeId = this.graph.addVertex(VertexType.Store);
+        const storeNodeId: NodeId = this.graph.addVertex(VertexType.Store);
         this.nextControl(storeNodeId);
 
         this.graph.addEdge(valueNodeId, storeNodeId, "value", EdgeType.Data);
@@ -768,7 +768,7 @@ export class Extractor {
     }
 
     private createLoadNode(objectNodeId: NodeId, propertyNodeId: NodeId): NodeId {
-        let loadNodeId: NodeId = this.graph.addVertex(VertexType.Load);
+        const loadNodeId: NodeId = this.graph.addVertex(VertexType.Load);
         this.nextControl(loadNodeId);
 
         this.graph.addEdge(objectNodeId, loadNodeId, "object", EdgeType.Data);
@@ -778,12 +778,12 @@ export class Extractor {
     }
 
     private processPropertyAccessExpression(propertyAccessExpression: ts.PropertyAccessExpression): NodeId {
-        let [objectNodeId, properyNodeId] : [NodeId, NodeId] = this.getPropertyAccessArguments(propertyAccessExpression);
+        const [objectNodeId, properyNodeId] : [NodeId, NodeId] = this.getPropertyAccessArguments(propertyAccessExpression);
         return this.createLoadNode(objectNodeId, properyNodeId);
     }
 
     private processElementAccessExpression(elementAccessExpression: ts.ElementAccessExpression) :NodeId {
-        let [objectNodeId, propertyArgumentNodeId] : [NodeId, NodeId] = this.getElementAccessArguments(elementAccessExpression);
+        const [objectNodeId, propertyArgumentNodeId] : [NodeId, NodeId] = this.getElementAccessArguments(elementAccessExpression);
         return this.createLoadNode(objectNodeId, propertyArgumentNodeId);
     }
 
@@ -793,7 +793,7 @@ export class Extractor {
 
     //for cases we use the identifier's value
     private processIdentifierExpression(identifierExpression: ts.Identifier): NodeId {
-        let varName: string = Extractor.getIdentifierName(identifierExpression);
+        const varName: string = Extractor.getIdentifierName(identifierExpression);
         return this.symbolTable.getIdByName(varName);
     }
 }

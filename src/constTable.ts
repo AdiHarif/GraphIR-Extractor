@@ -11,7 +11,7 @@ export class ConstTable {
     }
 
     public getNodeId(constVal: unknown, isSymbol: boolean = false): NodeId {
-        let constName: unknown = isSymbol ? "#" + constVal : constVal;
+        const constName: unknown = isSymbol ? "#" + constVal : constVal;
 
         if (!this.constTable.has(constName)) {
             let nodeId: NodeId;
