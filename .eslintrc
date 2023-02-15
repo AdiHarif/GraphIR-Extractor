@@ -19,5 +19,15 @@
         "@typescript-eslint"
     ],
     "rules": {
-    }
+        "@typescript-eslint/no-inferrable-types": [
+            "error",
+            {
+                "ignoreParameters": true
+            }
+        ]
+    },
+    "ignorePatterns": [
+        "samples",
+        "build"
+    ]
 }
