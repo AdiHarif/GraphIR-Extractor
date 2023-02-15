@@ -65,7 +65,7 @@ class Paths:
         self.scripts_dir = os.path.dirname(os.path.realpath(__file__))
         self.root_dir = os.path.dirname(self.scripts_dir)
         self.build_dir = os.path.join(self.root_dir, 'build')
-        self.output_dir = os.path.join(self.root_dir, 'output')
+        self.output_dir = os.path.join(self.root_dir, 'out')
         self.sources_dir = os.path.join(self.root_dir, 'sources')
 
 
@@ -87,7 +87,7 @@ class Stages:
     def clean(self):
         if self.cfg.clean:
             dirs = [
-                (self.cfg.paths.output_dir, 'output'),
+                (self.cfg.paths.output_dir, 'out'),
                 (self.cfg.paths.build_dir, 'build')
             ]
             for dir_path, dir_name in dirs:
