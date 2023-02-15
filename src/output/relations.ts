@@ -18,7 +18,7 @@ async function exportEdges(edges: Array<Edge>, dir: string) {
 
 export async function exportIrToRelations(graph: Graph, dir: string) {
     await Promise.all([
-        exportVertices(Array.from(graph.vertices.values()), dir),
-        exportEdges(graph.edges, dir)
+        exportVertices(Array.from(graph.getAllVertices().values()), dir),
+        exportEdges(graph.getAllEdges(), dir)
     ]);
 }

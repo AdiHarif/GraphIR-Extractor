@@ -60,6 +60,9 @@ export class Extractor {
 
     private nextControl(nextControlId: NodeId) {
         let currentControlVertex: vertex.Vertex = this.graph.getVertexById(this.controlVertex);
+        // if (!currentControlVertex) {
+        //     throw new Error(`Vertex with id ${this.controlVertex} does not exist`);
+        // }
         let doNotCreateEdge: boolean = currentControlVertex instanceof vertex.ReturnVertex ||
                                        currentControlVertex instanceof vertex.ContinueVertex ||
                                        currentControlVertex instanceof vertex.BreakVertex;

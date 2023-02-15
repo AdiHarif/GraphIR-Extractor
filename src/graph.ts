@@ -10,12 +10,19 @@ export enum EdgeType {
 };
 
 export class Graph {
-    public edges: Array<Edge>;
-    public vertices: Map<NodeId, vertex.Vertex>;
+    private edges: Array<Edge> = new Array<Edge>()
+    private vertices: Map<NodeId, vertex.Vertex> = new Map<NodeId, vertex.Vertex>();
+    private subGraphs: Array<Graph> = new Array<Graph>()
 
-    public constructor() {
-        this.edges = new Array<Edge>();
-        this.vertices = new Map<NodeId, vertex.Vertex>();
+    public getAllEdges(): Array<Edge> {
+        return this.edges
+    }
+
+    public getAllVertices(): Array<vertex.Vertex> {
+        return this.subGraphs.reduce(
+            (array, graph) => array.concat(...graph.getAllVertices()),
+            Array.from(this.vertices.values())
+        )
     }
 
     public getEdgesWithNegativeSource(): Array<Edge> {
@@ -28,15 +35,13 @@ export class Graph {
         return edgesWithNegativeSource;
     }
 
-    private checkVertexId(id: NodeId): void {
-        if (!this.vertices.has(id) && id >= 0) {
-            throw new Error(`Vertex with id ${id} does not exist`);
-        }
-    }
-
     public addEdge(srcId: NodeId, dstId: NodeId, label: string, type: EdgeType): void {
-        this.checkVertexId(srcId);
-        this.checkVertexId(dstId);
+        // if (!this.getVertexById(srcId)) {
+        //     throw new Error(`Vertex with id ${srcId} does not exist`);
+        // }
+        // if (!this.getVertexById(dstId)) {
+        //     throw new Error(`Vertex with id ${dstId} does not exist`);
+        // }
 
         let newEdge: Edge = new Edge(srcId, dstId, label, type);
         this.edges.push(newEdge);
@@ -106,11 +111,18 @@ export class Graph {
         return newVertex.id;
     }
 
+    public addSubGraph(subgraph: Graph): void {
+        this.subGraphs.push(subgraph)
+    }
+
     public getVertexById(nodeId: NodeId): vertex.Vertex {
-        if (!this.vertices.has(nodeId)) {
-            throw new Error(`Vertex with node id ${nodeId} does not exist`);
+        for (const subgraph of this.subGraphs) {
+            const v = this.getVertexById(nodeId)
+            if (v) {
+                return v
+            }
         }
-        return this.vertices.get(nodeId) as vertex.Vertex;
+        return this.vertices.get(nodeId);
     }
 }
 

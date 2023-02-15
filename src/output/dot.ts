@@ -8,7 +8,7 @@ import { VertexKind } from '../vertex'
 function irToModel(graph: Graph): gviz.Digraph {
     const digraph = new gviz.Digraph()
 
-    graph.vertices.forEach(v => {
+    graph.getAllVertices().forEach(v => {
         digraph.createNode(
             String(v.id),
             {
@@ -18,7 +18,7 @@ function irToModel(graph: Graph): gviz.Digraph {
         )
     })
 
-    graph.edges.forEach(e => {
+    graph.getAllEdges().forEach(e => {
         digraph.createEdge(
             [ String(e.srcId), String(e.dstId) ],
             {
