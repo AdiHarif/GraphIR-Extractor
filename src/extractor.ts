@@ -5,6 +5,7 @@ import { SymbolTable } from "./symbolTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
 import * as ast from './ts-ast'
+import { syntaxKindToBinaryOperation } from "./mappings";
 
 export function extractIr(sourceFile: ts.SourceFile): Graph {
     const graph: Graph = new Graph();
@@ -603,59 +604,8 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     }
 
     function processBinaryExpression(binExpression: ts.BinaryExpression): NodeId {
-        let binaryOperation: BinaryOperation;
-        let isAssignOperation = false;
-
-        switch (binExpression.operatorToken.kind) {
-            case ts.SyntaxKind.PlusToken:
-                binaryOperation = BinaryOperation.Add;
-                break;
-            case ts.SyntaxKind.MinusToken:
-                binaryOperation = BinaryOperation.Sub;
-                break;
-            case ts.SyntaxKind.AsteriskToken:
-                binaryOperation = BinaryOperation.Mul;
-                break;
-            case ts.SyntaxKind.SlashToken:
-                binaryOperation = BinaryOperation.Div;
-                break;
-            case ts.SyntaxKind.EqualsToken:
-                binaryOperation = BinaryOperation.Assign;
-                isAssignOperation = true;
-                break;
-            case ts.SyntaxKind.LessThanToken:
-                binaryOperation = BinaryOperation.LessThan;
-                break;
-            case ts.SyntaxKind.GreaterThanToken:
-                binaryOperation = BinaryOperation.GreaterThan;
-                break;
-            case ts.SyntaxKind.LessThanEqualsToken:
-                binaryOperation = BinaryOperation.LessThanEqual;
-                break;
-            case ts.SyntaxKind.GreaterThanEqualsToken:
-                binaryOperation = BinaryOperation.GreaterThanEqual;
-                break;
-            case ts.SyntaxKind.EqualsEqualsToken:
-                binaryOperation = BinaryOperation.EqualEqual;
-                break;
-            case ts.SyntaxKind.ExclamationEqualsToken:
-                binaryOperation = BinaryOperation.NotEqual;
-                break;
-            case ts.SyntaxKind.EqualsEqualsEqualsToken:
-                binaryOperation = BinaryOperation.EqualEqualEqual;
-                break;
-            case ts.SyntaxKind.ExclamationEqualsEqualsToken:
-                binaryOperation = BinaryOperation.NotEqualEqual;
-                break;
-            case ts.SyntaxKind.AmpersandAmpersandToken:
-                binaryOperation = BinaryOperation.And;
-                break;
-            case ts.SyntaxKind.BarBarToken:
-                binaryOperation = BinaryOperation.Or;
-                break;
-            default:
-                throw new Error(`not implemented`);
-        }
+        const binaryOperation: BinaryOperation = syntaxKindToBinaryOperation(binExpression.operatorToken.kind);
+        const isAssignOperation = (binaryOperation == BinaryOperation.Assign);
 
         const rightNodeId: NodeId = processExpression(binExpression.right);
         if (isAssignOperation) {
