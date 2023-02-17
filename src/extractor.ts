@@ -6,29 +6,17 @@ import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
 
 export class Extractor {
-    private graph: Graph;
-    private symbolTable: SymbolTable;
-    private controlVertex: NodeId;
-    private functionsStack: Array<NodeId>;
-    private classesStack: Array<string>;
-    private whileStack: Array<NodeId>;
-    private breakStack: Array<Array<NodeId>>; // stack of lists
-    private currentBranchType: boolean;
-    private patchingVariablesCounter: NodeId;
+    private graph: Graph = new Graph();
+    private symbolTable: SymbolTable = new SymbolTable();
+    private controlVertex: NodeId = 0;
+    private functionsStack: Array<NodeId> = new Array();
+    private classesStack: Array<string> = new Array();
+    private whileStack: Array<NodeId> = new Array();
+    private breakStack: Array<Array<NodeId>> = new Array(); // stack of lists
+    private currentBranchType = false;
+    private patchingVariablesCounter: NodeId = -1
 
-    public constructor() {
-        this.graph = new Graph();
-        this.symbolTable = new SymbolTable();
-        this.controlVertex = 0;
-        this.functionsStack = new Array<NodeId>();
-        this.classesStack = new Array<string>();
-        this.whileStack = new Array<NodeId>();
-        this.breakStack = new Array<Array<NodeId>>();
-        this.currentBranchType = false;
-        this.patchingVariablesCounter = -1;
-    }
-
-    private static getIdentifierName(name: ts.Identifier | ts.PropertyName): string{
+    private static getIdentifierName(name: ts.Identifier | ts.PropertyName): string {
         return name['escapedText'];
     }
 
