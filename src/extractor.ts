@@ -233,7 +233,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     }
 
     function processNewExpression(newExpression: ts.NewExpression): NodeId {
-        const className: string = getIdentifierName(newExpression.expression as ts.Identifier);
+        const className: string = ast.getIdentifierName(newExpression.expression as ts.Identifier);
         const newNodeId: NodeId = graph.addVertex(VertexType.New, {name: className});
 
         if (newExpression.arguments !== undefined) {
