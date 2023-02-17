@@ -484,10 +484,10 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
                 expNodeId = processStringLiteral(expression as ts.StringLiteral);
                 break;
             case ts.SyntaxKind.TrueKeyword:
-                expNodeId = emitTrueLiteralNode();
+                expNodeId = graph.getConstVertexId(true);
                 break;
             case ts.SyntaxKind.FalseKeyword:
-                expNodeId = emitFalseLiteralNode();
+                expNodeId = graph.getConstVertexId(false);
                 break;
             case ts.SyntaxKind.PrefixUnaryExpression:
                 expNodeId = processPrefixUnaryExpression(expression as ts.PrefixUnaryExpression);
@@ -593,14 +593,6 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
     function processStringLiteral(strLiteral: ts.StringLiteral): NodeId {
         return graph.getConstVertexId(strLiteral.text);
-    }
-
-    function emitTrueLiteralNode(): NodeId {
-        return graph.getConstVertexId(true);
-    }
-
-    function emitFalseLiteralNode(): NodeId {
-        return graph.getConstVertexId(false);
     }
 
     function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression): NodeId {
