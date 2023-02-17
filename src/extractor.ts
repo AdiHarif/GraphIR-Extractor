@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 
-import { Graph, Edge, EdgeType } from "./graph";
+import { Graph, Edge, EdgeKind } from "./graph";
 import { SymbolTable } from "./symbolTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
@@ -36,7 +36,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
             const isBranchVertex = currentControlVertex instanceof vertex.IfVertex ||
                                  currentControlVertex instanceof vertex.WhileVertex;
             const edgeLabel: string = isBranchVertex ? String(currentBranchType) + "-control" : "control";
-            graph.addEdge(controlVertex, nextControlId, edgeLabel, EdgeType.Control);
+            graph.addEdge(controlVertex, nextControlId, edgeLabel, EdgeKind.Control);
         }
         controlVertex = nextControlId;
 
@@ -48,7 +48,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     function backpatchBreakEdges(): void {
         const currentBreakList: Array<NodeId> = breakStack[0];
         for (const breakNodeId of currentBreakList) {
-            graph.addEdge(breakNodeId, controlVertex, "control", EdgeType.Control);
+            graph.addEdge(breakNodeId, controlVertex, "control", EdgeKind.Control);
         }
         breakStack.shift(); // pop the last break list
     }
@@ -106,7 +106,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         parametersList.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
             const parameterNodeId: NodeId = graph.addVertex(VertexType.Parameter, {pos: position + 1});
-            graph.addEdge(parameterNodeId, startNodeId, "association", EdgeType.Association);
+            graph.addEdge(parameterNodeId, startNodeId, "association", EdgeKind.Association);
             symbolTable.addSymbol(parameterName, parameterNodeId);
         });
     }
@@ -119,7 +119,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
             const funcName: string = funcDeclaration.name['escapedText'] as string;
             const funcStartNodeId: NodeId = graph.addVertex(VertexType.Start, {name: funcName});
             const funcSymbolNodeId: NodeId = symbolTable.getIdByName(funcName);
-            graph.addEdge(funcStartNodeId, funcSymbolNodeId, "association", EdgeType.Association);
+            graph.addEdge(funcStartNodeId, funcSymbolNodeId, "association", EdgeKind.Association);
             controlVertex = funcStartNodeId;
 
             symbolTable.addNewScope();
@@ -182,7 +182,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         functionsStack.unshift(methodStartNodeId);
 
         const thisNodeId: NodeId = graph.addVertex(VertexType.Parameter, {pos: 0, funcId: methodStartNodeId});
-        graph.addEdge(thisNodeId, methodStartNodeId, "association", EdgeType.Association);
+        graph.addEdge(thisNodeId, methodStartNodeId, "association", EdgeKind.Association);
         symbolTable.addSymbol('this', thisNodeId);
         processParameters(methodDecl.parameters, methodStartNodeId);
 
@@ -222,11 +222,11 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
         callExpression.arguments.forEach((argument, pos) => {
             const argumentNodeId: NodeId = processExpression(argument);
-            graph.addEdge(argumentNodeId, callNodeId, "pos: " + String(pos + 1), EdgeType.Data);
+            graph.addEdge(argumentNodeId, callNodeId, "pos: " + String(pos + 1), EdgeKind.Data);
         });
 
         const callableExpNodeId: NodeId = processExpression(callExpression.expression);
-        graph.addEdge(callableExpNodeId, callNodeId, "callable",  EdgeType.Data);
+        graph.addEdge(callableExpNodeId, callNodeId, "callable",  EdgeKind.Data);
         nextControl(callNodeId);
 
         return callNodeId;
@@ -239,13 +239,13 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         if (newExpression.arguments !== undefined) {
             newExpression.arguments.forEach((argument, pos) => {
                 const argumentNodeId: NodeId = processExpression(argument);
-                graph.addEdge(argumentNodeId, newNodeId, "pos: " + String(pos + 1), EdgeType.Data);
+                graph.addEdge(argumentNodeId, newNodeId, "pos: " + String(pos + 1), EdgeKind.Data);
             });
         }
 
         const constructorName: string = className + "::constructor";
         const constructorNodeId: NodeId = symbolTable.getIdByName(constructorName);
-        graph.addEdge(constructorNodeId, newNodeId, "callable", EdgeType.Data);
+        graph.addEdge(constructorNodeId, newNodeId, "callable", EdgeKind.Data);
         nextControl(newNodeId);
         return newNodeId;
     }
@@ -295,7 +295,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     function emitContinueNode(): void {
         const continueNodeId: NodeId = graph.addVertex(VertexType.Continue);
         nextControl(continueNodeId);
-        graph.addEdge(continueNodeId, whileStack[0], "control", EdgeType.Control);
+        graph.addEdge(continueNodeId, whileStack[0], "control", EdgeKind.Control);
     }
 
     function emitBreakNode(): void {
@@ -308,7 +308,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         const preMergeControlVertex: NodeId = controlVertex;
         const whileNodeId: NodeId = graph.addVertex(VertexType.While);
         const mergeNodeId: NodeId = graph.addVertex(VertexType.Merge);
-        graph.addEdge(whileNodeId, mergeNodeId, "association", EdgeType.Association);
+        graph.addEdge(whileNodeId, mergeNodeId, "association", EdgeKind.Association);
 
         whileStack.unshift(mergeNodeId);
         breakStack.unshift(new Array<NodeId>()); // the list is popped right after backpatching it inside nextControl()
@@ -317,7 +317,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         const [previousPatchingVariablesCounter, patchingIdToVarName] = prepareForWhileStatementPatching(symbolTableCopy);
 
         const expNodeId: NodeId = processExpression(whileStatement.expression);
-        graph.addEdge(expNodeId, whileNodeId, "condition",  EdgeType.Data);
+        graph.addEdge(expNodeId, whileNodeId, "condition",  EdgeKind.Data);
         currentBranchType = true;
         nextControl(mergeNodeId);
         nextControl(whileNodeId);
@@ -344,12 +344,12 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         const ifNodeId: NodeId = graph.addVertex(VertexType.If);
         nextControl(ifNodeId);
 
-        graph.addEdge(expNodeId, ifNodeId, "condition", EdgeType.Data);
+        graph.addEdge(expNodeId, ifNodeId, "condition", EdgeKind.Data);
 
         const symbolTableCopy: Map<string, NodeId> = symbolTable.getCopy();
 
         const mergeNodeId: NodeId = graph.addVertex(VertexType.Merge);
-        graph.addEdge(ifNodeId, mergeNodeId, "association", EdgeType.Association);
+        graph.addEdge(ifNodeId, mergeNodeId, "association", EdgeKind.Association);
 
         currentBranchType = true;
         processBranchBlockWrapper(ifStatement.thenStatement);
@@ -415,19 +415,19 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
             }
             else {
                 const phiNodeId: NodeId = graph.addVertex(VertexType.Phi, {mergeId: mergeNodeId});
-                graph.addEdge(phiNodeId, mergeNodeId, "association", EdgeType.Association);
+                graph.addEdge(phiNodeId, mergeNodeId, "association", EdgeKind.Association);
 
                 if (trueBranchNodeId && falseBranchNodeId) {
-                    graph.addEdge(trueBranchNodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
-                    graph.addEdge(falseBranchNodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
+                    graph.addEdge(trueBranchNodeId, phiNodeId, phiEdgesLabels.true, EdgeKind.Data);
+                    graph.addEdge(falseBranchNodeId, phiNodeId, phiEdgesLabels.false, EdgeKind.Data);
                 }
                 else if (trueBranchNodeId) {
-                    graph.addEdge(trueBranchNodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
-                    graph.addEdge(nodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
+                    graph.addEdge(trueBranchNodeId, phiNodeId, phiEdgesLabels.true, EdgeKind.Data);
+                    graph.addEdge(nodeId, phiNodeId, phiEdgesLabels.false, EdgeKind.Data);
                 }
                 else if (falseBranchNodeId) {
-                    graph.addEdge(falseBranchNodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
-                    graph.addEdge(nodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
+                    graph.addEdge(falseBranchNodeId, phiNodeId, phiEdgesLabels.false, EdgeKind.Data);
+                    graph.addEdge(nodeId, phiNodeId, phiEdgesLabels.true, EdgeKind.Data);
                 }
                 else {
                     // TODO: assert (remove after testing)
@@ -441,12 +441,12 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     function processReturnStatement(retStatement: ts.ReturnStatement): void {
         const currentFuncNodeId: NodeId = functionsStack[0];
         const returnNodeId: NodeId = graph.addVertex(VertexType.Return);
-        graph.addEdge(returnNodeId, currentFuncNodeId, "association", EdgeType.Association);
+        graph.addEdge(returnNodeId, currentFuncNodeId, "association", EdgeKind.Association);
         nextControl(returnNodeId);
 
         if (retStatement.expression !== undefined) {
             const expNodeId: NodeId = processExpression(retStatement.expression);
-            graph.addEdge(expNodeId, returnNodeId, "value", EdgeType.Data)
+            graph.addEdge(expNodeId, returnNodeId, "value", EdgeKind.Data)
         }
     }
 
@@ -568,7 +568,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         functionsStack.unshift(funcStartNodeId);
 
         const thisNodeId: NodeId = graph.addVertex(VertexType.Parameter, {pos: 0});
-        graph.addEdge(thisNodeId, funcStartNodeId, "association", EdgeType.Association);
+        graph.addEdge(thisNodeId, funcStartNodeId, "association", EdgeKind.Association);
         symbolTable.addSymbol('this', thisNodeId);
         processParameters(funcExp.parameters, funcStartNodeId);
         processBlockStatements((funcExp.body as ts.Block).statements);
@@ -620,7 +620,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
                 throw new Error(`not implemented`);
         }
         const operationNodeId: NodeId = graph.addVertex(VertexType.UnaryOperation, {operation: unaryOperation});
-        graph.addEdge(expNodeId, operationNodeId, "prefix", EdgeType.Data);
+        graph.addEdge(expNodeId, operationNodeId, "prefix", EdgeKind.Data);
         return operationNodeId;
     }
 
@@ -703,8 +703,8 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         else {
             const leftNodeId: NodeId = processExpression(binExpression.left);
             const operationNodeId: NodeId = graph.addVertex(VertexType.BinaryOperation, {operation: binaryOperation});
-            graph.addEdge(rightNodeId, operationNodeId, "right", EdgeType.Data);
-            graph.addEdge(leftNodeId, operationNodeId, "left", EdgeType.Data);
+            graph.addEdge(rightNodeId, operationNodeId, "right", EdgeKind.Data);
+            graph.addEdge(leftNodeId, operationNodeId, "left", EdgeKind.Data);
             return operationNodeId;
         }
     }
@@ -726,9 +726,9 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         const storeNodeId: NodeId = graph.addVertex(VertexType.Store);
         nextControl(storeNodeId);
 
-        graph.addEdge(valueNodeId, storeNodeId, "value", EdgeType.Data);
-        graph.addEdge(objectNodeId, storeNodeId, "object", EdgeType.Data);
-        graph.addEdge(propertyNodeId, storeNodeId, "property", EdgeType.Data);
+        graph.addEdge(valueNodeId, storeNodeId, "value", EdgeKind.Data);
+        graph.addEdge(objectNodeId, storeNodeId, "object", EdgeKind.Data);
+        graph.addEdge(propertyNodeId, storeNodeId, "property", EdgeKind.Data);
 
         return storeNodeId;
     }
@@ -737,8 +737,8 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         const loadNodeId: NodeId = graph.addVertex(VertexType.Load);
         nextControl(loadNodeId);
 
-        graph.addEdge(objectNodeId, loadNodeId, "object", EdgeType.Data);
-        graph.addEdge(propertyNodeId, loadNodeId, "property", EdgeType.Data);
+        graph.addEdge(objectNodeId, loadNodeId, "object", EdgeKind.Data);
+        graph.addEdge(propertyNodeId, loadNodeId, "property", EdgeKind.Data);
 
         return loadNodeId;
     }

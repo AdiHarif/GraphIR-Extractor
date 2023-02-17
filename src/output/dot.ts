@@ -2,7 +2,7 @@
 import * as fs from 'fs/promises'
 import * as gviz from 'ts-graphviz'
 
-import { EdgeType, Graph } from '../graph'
+import { EdgeKind, Graph } from '../graph'
 import { VertexKind } from '../vertex'
 
 function irToModel(graph: Graph): gviz.Digraph {
@@ -23,9 +23,9 @@ function irToModel(graph: Graph): gviz.Digraph {
             [ String(e.srcId), String(e.dstId) ],
             {
                 label: e.label,
-                arrowhead: e.type == EdgeType.Data ? 'onormal' : undefined,
-                style: e.type == EdgeType.Association ? 'dashed' : undefined,
-                dir: e.type == EdgeType.Association ? 'none' : undefined,
+                arrowhead: e.type == EdgeKind.Data ? 'onormal' : undefined,
+                style: e.type == EdgeKind.Association ? 'dashed' : undefined,
+                dir: e.type == EdgeKind.Association ? 'none' : undefined,
             }
         )
     })

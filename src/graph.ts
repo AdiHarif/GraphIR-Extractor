@@ -6,7 +6,7 @@ import * as vertex from "./vertex";
 import { Vertex } from './vertex'
 import { Literal } from './types'
 
-export enum EdgeType {
+export enum EdgeKind {
     Control = "control",
     Data = "data",
     Association = "association"
@@ -40,7 +40,7 @@ export class Graph {
         return edgesWithNegativeSource;
     }
 
-    public addEdge(srcId: NodeId, dstId: NodeId, label: string, type: EdgeType): void {
+    public addEdge(srcId: NodeId, dstId: NodeId, label: string, type: EdgeKind): void {
         // if (!this.getVertexById(srcId)) {
         //     throw new Error(`Vertex with id ${srcId} does not exist`);
         // }
@@ -147,6 +147,6 @@ export class Edge {
         public srcId: NodeId,
         public dstId: NodeId,
         public label: string,
-        public type: EdgeType
+        public type: EdgeKind
     ) {};
 }
