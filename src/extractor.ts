@@ -4,6 +4,7 @@ import { Graph, Edge, EdgeType } from "./graph";
 import { SymbolTable } from "./symbolTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
+import * as ast from './ts-ast'
 
 export function extractIr(sourceFile: ts.SourceFile): Graph {
     const graph: Graph = new Graph();
@@ -18,10 +19,6 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
     controlVertex = graph.addVertex(VertexType.Start, {name: "__entryPoint__"});
     symbolTable.addNewScope();
-
-    function getIdentifierName(name: ts.Identifier | ts.PropertyName): string {
-        return name['escapedText'];
-    }
 
     processBlockStatements(sourceFile.statements)
 
@@ -171,7 +168,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
             methodName = classesStack[0] + '::constructor';
         }
         else {
-            methodName = classesStack[0] + '::' + getIdentifierName((methodDecl as ts.MethodDeclaration).name);
+            methodName = classesStack[0] + '::' + ast.getIdentifierName((methodDecl as ts.MethodDeclaration).name);
         }
 
         const methodStartNodeId: NodeId = graph.addVertex(VertexType.Start, {name: methodName});
@@ -553,7 +550,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
         objectLiteralExp.properties.forEach((newProperty: ts.ObjectLiteralElementLike) => {
             const expNodeId: NodeId = processExpression((newProperty as ts.PropertyAssignment).initializer);
-            const propertyName: string = getIdentifierName((newProperty as ts.PropertyAssignment).name);
+            const propertyName: string = ast.getIdentifierName((newProperty as ts.PropertyAssignment).name);
             const propertyNodeId: NodeId = graph.getSymbolVertexId(propertyName);
             createStoreNode(expNodeId, newNodeId, propertyNodeId);
         });
@@ -713,7 +710,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     }
 
     function getPropertyAccessArguments(propertyAccessExpression: ts.PropertyAccessExpression): [NodeId, NodeId] {
-        const propertyName: string = getIdentifierName((propertyAccessExpression.name) as ts.Identifier);
+        const propertyName: string = ast.getIdentifierName((propertyAccessExpression.name) as ts.Identifier);
         const properyNodeId: NodeId = graph.getSymbolVertexId(propertyName);
         const objectNodeId: NodeId = processExpression(propertyAccessExpression.expression);
         return [objectNodeId, properyNodeId];
@@ -762,7 +759,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
     //for cases we use the identifier's value
     function processIdentifierExpression(identifierExpression: ts.Identifier): NodeId {
-        const varName: string = getIdentifierName(identifierExpression);
+        const varName: string = ast.getIdentifierName(identifierExpression);
         return symbolTable.getIdByName(varName);
     }
 }
