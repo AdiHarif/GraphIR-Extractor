@@ -195,15 +195,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
 
     function processVariableStatement(varStatement: ts.VariableStatement): void {
-        varStatement.forEachChild(child => {
-            switch (child.kind) {
-                case ts.SyntaxKind.VariableDeclarationList:
-                    processVariableDeclarationList(child as ts.VariableDeclarationList);
-                    break;
-                default:
-                    throw new Error(`not implemented`);
-            }
-        });
+        processVariableDeclarationList(varStatement.declarationList);
     }
 
     function processExpressionStatement(expStatement: ts.ExpressionStatement): NodeId {
@@ -452,13 +444,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
     function processVariableDeclarationList(varDeclList: ts.VariableDeclarationList): void {
         varDeclList.forEachChild(child => {
-            switch (child.kind) {
-                case ts.SyntaxKind.VariableDeclaration:
-                    processVariableDeclaration(child as ts.VariableDeclaration);
-                    break;
-                default:
-                    throw new Error(`not implemented`);
-            }
+            processVariableDeclaration(child as ts.VariableDeclaration);
         });
     }
 
@@ -596,7 +582,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     }
 
     function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression): NodeId {
-        const expNodeId: NodeId = processExpression(prefixUnaryExpression.operand as ts.Expression);
+        const expNodeId: NodeId = processExpression(prefixUnaryExpression.operand);
         let unaryOperation: UnaryOperation;
         switch(prefixUnaryExpression.operator){
             case ts.SyntaxKind.PlusToken:
