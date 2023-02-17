@@ -4,5 +4,8 @@ build
 out
 coverage
 
-# Node directories
+# Node Directories
 node_modules
+
+# IDE Directories
+.vscode
