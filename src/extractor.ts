@@ -5,48 +5,32 @@ import { SymbolTable } from "./symbolTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
 
-export class Extractor {
-    private graph: Graph = new Graph();
-    private symbolTable: SymbolTable = new SymbolTable();
-    private controlVertex: NodeId = 0;
-    private functionsStack: Array<NodeId> = new Array();
-    private classesStack: Array<string> = new Array();
-    private whileStack: Array<NodeId> = new Array();
-    private breakStack: Array<Array<NodeId>> = new Array(); // stack of lists
-    private currentBranchType = false;
-    private patchingVariablesCounter: NodeId = -1
+export function extractIr(sourceFile: ts.SourceFile): Graph {
+    const graph: Graph = new Graph();
+    const symbolTable: SymbolTable = new SymbolTable();
+    let controlVertex: NodeId = 0;
+    const functionsStack: Array<NodeId> = new Array();
+    const classesStack: Array<string> = new Array();
+    const whileStack: Array<NodeId> = new Array();
+    const breakStack: Array<Array<NodeId>> = new Array(); // stack of lists
+    let currentBranchType = false;
+    let patchingVariablesCounter: NodeId = -1
 
-    private static getIdentifierName(name: ts.Identifier | ts.PropertyName): string {
+    controlVertex = graph.addVertex(VertexType.Start, {name: "__entryPoint__"});
+    symbolTable.addNewScope();
+
+    function getIdentifierName(name: ts.Identifier | ts.PropertyName): string {
         return name['escapedText'];
     }
 
-    public extractIr(ast: ts.SourceFile): Graph {
-        this.initGraph();
-        this.initSymbolTable();
+    processBlockStatements(sourceFile.statements)
 
-        this.processBlockStatements(ast.statements)
+    return graph
 
-        this.destroySymbolTable();
-
-        return this.graph
-    }
-
-    private initGraph(): void {
-        this.controlVertex = this.graph.addVertex(VertexType.Start, {name: "__entryPoint__"});
-    }
-
-    private initSymbolTable(): void {
-        this.symbolTable.addNewScope();
-    }
-
-    private destroySymbolTable(): void {
-        this.symbolTable.removeCurrentScope();
-    }
-
-    private nextControl(nextControlId: NodeId) {
-        const currentControlVertex: vertex.Vertex = this.graph.getVertexById(this.controlVertex);
+    function nextControl(nextControlId: NodeId) {
+        const currentControlVertex: vertex.Vertex = graph.getVertexById(controlVertex);
         // if (!currentControlVertex) {
-        //     throw new Error(`Vertex with id ${this.controlVertex} does not exist`);
+        //     throw new Error(`Vertex with id ${controlVertex} does not exist`);
         // }
         const doNotCreateEdge: boolean = currentControlVertex instanceof vertex.ReturnVertex ||
                                        currentControlVertex instanceof vertex.ContinueVertex ||
@@ -54,32 +38,32 @@ export class Extractor {
         if (!doNotCreateEdge) {
             const isBranchVertex = currentControlVertex instanceof vertex.IfVertex ||
                                  currentControlVertex instanceof vertex.WhileVertex;
-            const edgeLabel: string = isBranchVertex ? String(this.currentBranchType) + "-control" : "control";
-            this.graph.addEdge(this.controlVertex, nextControlId, edgeLabel, EdgeType.Control);
+            const edgeLabel: string = isBranchVertex ? String(currentBranchType) + "-control" : "control";
+            graph.addEdge(controlVertex, nextControlId, edgeLabel, EdgeType.Control);
         }
-        this.controlVertex = nextControlId;
+        controlVertex = nextControlId;
 
-        if (currentControlVertex instanceof vertex.WhileVertex && this.currentBranchType === false) {
-            this.backpatchBreakEdges();
+        if (currentControlVertex instanceof vertex.WhileVertex && currentBranchType === false) {
+            backpatchBreakEdges();
         }
     }
 
-    private backpatchBreakEdges(): void {
-        const currentBreakList: Array<NodeId> = this.breakStack[0];
+    function backpatchBreakEdges(): void {
+        const currentBreakList: Array<NodeId> = breakStack[0];
         for (const breakNodeId of currentBreakList) {
-            this.graph.addEdge(breakNodeId, this.controlVertex, "control", EdgeType.Control);
+            graph.addEdge(breakNodeId, controlVertex, "control", EdgeType.Control);
         }
-        this.breakStack.shift(); // pop the last break list
+        breakStack.shift(); // pop the last break list
     }
 
-    private processBlockStatements(statements: ts.NodeArray<ts.Statement> | Array<ts.Statement>): void {
+    function processBlockStatements(statements: ts.NodeArray<ts.Statement> | Array<ts.Statement>): void {
         const postponedFunctionStatements: Array<ts.FunctionDeclaration> = [];
-        this.symbolTable.addNewScope();
+        symbolTable.addNewScope();
 
         //supports function definition after they are used
         statements.forEach((statement: ts.Statement) => {
             if (statement.kind === ts.SyntaxKind.FunctionDeclaration) {
-                this.processFunctionDeclaration(statement as ts.FunctionDeclaration);
+                processFunctionDeclaration(statement as ts.FunctionDeclaration);
                 postponedFunctionStatements.push(statement as ts.FunctionDeclaration);
             }
         });
@@ -89,135 +73,135 @@ export class Extractor {
                 case ts.SyntaxKind.FunctionDeclaration:
                     break;
                 case ts.SyntaxKind.ClassDeclaration:
-                    this.processClassDeclaration(statement as ts.ClassDeclaration);
+                    processClassDeclaration(statement as ts.ClassDeclaration);
                     break;
                 case ts.SyntaxKind.VariableStatement:
-                    this.processVariableStatement(statement as ts.VariableStatement);
+                    processVariableStatement(statement as ts.VariableStatement);
                     break;
                 case ts.SyntaxKind.ExpressionStatement:
-                    this.processExpressionStatement(statement as ts.ExpressionStatement);
+                    processExpressionStatement(statement as ts.ExpressionStatement);
                     break;
                 case ts.SyntaxKind.IfStatement:
-                    this.processIfStatement(statement as ts.IfStatement);
+                    processIfStatement(statement as ts.IfStatement);
                     break;
                 case ts.SyntaxKind.ReturnStatement:
-                    this.processReturnStatement(statement as ts.ReturnStatement);
+                    processReturnStatement(statement as ts.ReturnStatement);
                     break;
                 case ts.SyntaxKind.WhileStatement:
-                    this.processWhileStatement(statement as ts.WhileStatement);
+                    processWhileStatement(statement as ts.WhileStatement);
                     break;
                 case ts.SyntaxKind.ContinueStatement:
-                    this.emitContinueNode();
+                    emitContinueNode();
                     break;
                 case ts.SyntaxKind.BreakStatement:
-                    this.emitBreakNode();
+                    emitBreakNode();
                     break;
                 default:
                     throw new Error(`not implemented`);
             }
         });
 
-        this.processPostponedFunctionStatements(postponedFunctionStatements);
-        this.symbolTable.removeCurrentScope();
+        processPostponedFunctionStatements(postponedFunctionStatements);
+        symbolTable.removeCurrentScope();
     }
 
-    private processParameters(parametersList: ts.NodeArray<ts.ParameterDeclaration>, startNodeId: NodeId): void {
+    function processParameters(parametersList: ts.NodeArray<ts.ParameterDeclaration>, startNodeId: NodeId): void {
         parametersList.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
-            const parameterNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: position + 1});
-            this.graph.addEdge(parameterNodeId, startNodeId, "association", EdgeType.Association);
-            this.symbolTable.addSymbol(parameterName, parameterNodeId);
+            const parameterNodeId: NodeId = graph.addVertex(VertexType.Parameter, {pos: position + 1});
+            graph.addEdge(parameterNodeId, startNodeId, "association", EdgeType.Association);
+            symbolTable.addSymbol(parameterName, parameterNodeId);
         });
     }
 
     //supports cases in which function's definition uses variable that is declared only after the definition
-    private processPostponedFunctionStatements(postponedFunctionStatements: Array<ts.FunctionDeclaration>): void {
-        const prevControlVertex: NodeId = this.controlVertex;
+    function processPostponedFunctionStatements(postponedFunctionStatements: Array<ts.FunctionDeclaration>): void {
+        const prevControlVertex: NodeId = controlVertex;
 
         postponedFunctionStatements.forEach((funcDeclaration: ts.FunctionDeclaration) => {
             const funcName: string = funcDeclaration.name['escapedText'] as string;
-            const funcStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: funcName});
-            const funcSymbolNodeId: NodeId = this.symbolTable.getIdByName(funcName);
-            this.graph.addEdge(funcStartNodeId, funcSymbolNodeId, "association", EdgeType.Association);
-            this.controlVertex = funcStartNodeId;
+            const funcStartNodeId: NodeId = graph.addVertex(VertexType.Start, {name: funcName});
+            const funcSymbolNodeId: NodeId = symbolTable.getIdByName(funcName);
+            graph.addEdge(funcStartNodeId, funcSymbolNodeId, "association", EdgeType.Association);
+            controlVertex = funcStartNodeId;
 
-            this.symbolTable.addNewScope();
-            this.functionsStack.unshift(funcStartNodeId);
+            symbolTable.addNewScope();
+            functionsStack.unshift(funcStartNodeId);
 
-            this.processParameters(funcDeclaration.parameters, funcStartNodeId);
-            this.processBlockStatements((funcDeclaration.body as ts.Block).statements);
+            processParameters(funcDeclaration.parameters, funcStartNodeId);
+            processBlockStatements((funcDeclaration.body as ts.Block).statements);
 
-            this.functionsStack.shift();
-            this.symbolTable.removeCurrentScope();
+            functionsStack.shift();
+            symbolTable.removeCurrentScope();
         });
 
-        this.controlVertex = prevControlVertex;
+        controlVertex = prevControlVertex;
     }
 
-    private processFunctionDeclaration(funcDeclaration: ts.FunctionDeclaration): void {
+    function processFunctionDeclaration(funcDeclaration: ts.FunctionDeclaration): void {
         const funcName: string = funcDeclaration.name['escapedText'] as string;
-        const funcSymbolNodeId: NodeId = this.graph.getSymbolVertexId(funcName);
-        this.symbolTable.addSymbol(funcName, funcSymbolNodeId);
+        const funcSymbolNodeId: NodeId = graph.getSymbolVertexId(funcName);
+        symbolTable.addSymbol(funcName, funcSymbolNodeId);
     }
 
-    private processClassDeclaration(classDeclaration: ts.ClassDeclaration): void {
+    function processClassDeclaration(classDeclaration: ts.ClassDeclaration): void {
         const className: string = classDeclaration.name['escapedText'] as string;
-        this.classesStack.unshift(className);
+        classesStack.unshift(className);
         for (const member of classDeclaration.members) {
             switch (member.kind) {
                 case ts.SyntaxKind.Constructor:
-                    this.processMethodDeclaration(member as ts.ConstructorDeclaration, true);
+                    processMethodDeclaration(member as ts.ConstructorDeclaration, true);
                     break;
                 case ts.SyntaxKind.PropertyDeclaration:
                     break;
                 case ts.SyntaxKind.MethodDeclaration:
-                    this.processMethodDeclaration(member as ts.MethodDeclaration);
+                    processMethodDeclaration(member as ts.MethodDeclaration);
                     break;
                 default:
                     throw new Error('not implemented');
             }
         }
-        this.classesStack.shift();
+        classesStack.shift();
     }
 
-    private processMethodDeclaration(methodDecl: ts.ConstructorDeclaration | ts.MethodDeclaration,
+    function processMethodDeclaration(methodDecl: ts.ConstructorDeclaration | ts.MethodDeclaration,
                                      isConstructor: boolean = false): void {
         let methodName: string;
         if (isConstructor) {
-            methodName = this.classesStack[0] + '::constructor';
+            methodName = classesStack[0] + '::constructor';
         }
         else {
-            methodName = this.classesStack[0] + '::' + Extractor.getIdentifierName((methodDecl as ts.MethodDeclaration).name);
+            methodName = classesStack[0] + '::' + getIdentifierName((methodDecl as ts.MethodDeclaration).name);
         }
 
-        const methodStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: methodName});
+        const methodStartNodeId: NodeId = graph.addVertex(VertexType.Start, {name: methodName});
         // This symbol is not used, but adding it
         // to the symbol table does no harm
-        this.symbolTable.addSymbol(methodName, methodStartNodeId);
-        const prevControlVertex: NodeId = this.controlVertex;
-        this.controlVertex = methodStartNodeId;
+        symbolTable.addSymbol(methodName, methodStartNodeId);
+        const prevControlVertex: NodeId = controlVertex;
+        controlVertex = methodStartNodeId;
 
-        this.symbolTable.addNewScope();
-        this.functionsStack.unshift(methodStartNodeId);
+        symbolTable.addNewScope();
+        functionsStack.unshift(methodStartNodeId);
 
-        const thisNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: 0, funcId: methodStartNodeId});
-        this.graph.addEdge(thisNodeId, methodStartNodeId, "association", EdgeType.Association);
-        this.symbolTable.addSymbol('this', thisNodeId);
-        this.processParameters(methodDecl.parameters, methodStartNodeId);
+        const thisNodeId: NodeId = graph.addVertex(VertexType.Parameter, {pos: 0, funcId: methodStartNodeId});
+        graph.addEdge(thisNodeId, methodStartNodeId, "association", EdgeType.Association);
+        symbolTable.addSymbol('this', thisNodeId);
+        processParameters(methodDecl.parameters, methodStartNodeId);
 
-        this.processBlockStatements((methodDecl.body as ts.Block).statements);
+        processBlockStatements((methodDecl.body as ts.Block).statements);
 
-        this.functionsStack.shift();
-        this.symbolTable.removeCurrentScope();
-        this.controlVertex = prevControlVertex;
+        functionsStack.shift();
+        symbolTable.removeCurrentScope();
+        controlVertex = prevControlVertex;
     }
 
 
-    private processVariableStatement(varStatement: ts.VariableStatement): void {
+    function processVariableStatement(varStatement: ts.VariableStatement): void {
         varStatement.forEachChild(child => {
             switch (child.kind) {
                 case ts.SyntaxKind.VariableDeclarationList:
-                    this.processVariableDeclarationList(child as ts.VariableDeclarationList);
+                    processVariableDeclarationList(child as ts.VariableDeclarationList);
                     break;
                 default:
                     throw new Error(`not implemented`);
@@ -225,85 +209,85 @@ export class Extractor {
         });
     }
 
-    private processExpressionStatement(expStatement: ts.ExpressionStatement): NodeId {
+    function processExpressionStatement(expStatement: ts.ExpressionStatement): NodeId {
         switch (expStatement.expression.kind) {
             case ts.SyntaxKind.BinaryExpression:
-                return this.processBinaryExpression(expStatement.expression as ts.BinaryExpression);
+                return processBinaryExpression(expStatement.expression as ts.BinaryExpression);
             case ts.SyntaxKind.CallExpression:
-                return this.processCallExpression(expStatement.expression as ts.CallExpression);
+                return processCallExpression(expStatement.expression as ts.CallExpression);
             default:
                 throw new Error(`not implemented`);
         }
     }
 
-    private processCallExpression(callExpression: ts.CallExpression): NodeId {
-        const callNodeId: NodeId = this.graph.addVertex(VertexType.Call);
+    function processCallExpression(callExpression: ts.CallExpression): NodeId {
+        const callNodeId: NodeId = graph.addVertex(VertexType.Call);
 
         callExpression.arguments.forEach((argument, pos) => {
-            const argumentNodeId: NodeId = this.processExpression(argument);
-            this.graph.addEdge(argumentNodeId, callNodeId, "pos: " + String(pos + 1), EdgeType.Data);
+            const argumentNodeId: NodeId = processExpression(argument);
+            graph.addEdge(argumentNodeId, callNodeId, "pos: " + String(pos + 1), EdgeType.Data);
         });
 
-        const callableExpNodeId: NodeId = this.processExpression(callExpression.expression);
-        this.graph.addEdge(callableExpNodeId, callNodeId, "callable",  EdgeType.Data);
-        this.nextControl(callNodeId);
+        const callableExpNodeId: NodeId = processExpression(callExpression.expression);
+        graph.addEdge(callableExpNodeId, callNodeId, "callable",  EdgeType.Data);
+        nextControl(callNodeId);
 
         return callNodeId;
     }
 
-    private processNewExpression(newExpression: ts.NewExpression): NodeId {
-        const className: string = Extractor.getIdentifierName(newExpression.expression as ts.Identifier);
-        const newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: className});
+    function processNewExpression(newExpression: ts.NewExpression): NodeId {
+        const className: string = getIdentifierName(newExpression.expression as ts.Identifier);
+        const newNodeId: NodeId = graph.addVertex(VertexType.New, {name: className});
 
         if (newExpression.arguments !== undefined) {
             newExpression.arguments.forEach((argument, pos) => {
-                const argumentNodeId: NodeId = this.processExpression(argument);
-                this.graph.addEdge(argumentNodeId, newNodeId, "pos: " + String(pos + 1), EdgeType.Data);
+                const argumentNodeId: NodeId = processExpression(argument);
+                graph.addEdge(argumentNodeId, newNodeId, "pos: " + String(pos + 1), EdgeType.Data);
             });
         }
 
         const constructorName: string = className + "::constructor";
-        const constructorNodeId: NodeId = this.symbolTable.getIdByName(constructorName);
-        this.graph.addEdge(constructorNodeId, newNodeId, "callable", EdgeType.Data);
-        this.nextControl(newNodeId);
+        const constructorNodeId: NodeId = symbolTable.getIdByName(constructorName);
+        graph.addEdge(constructorNodeId, newNodeId, "callable", EdgeType.Data);
+        nextControl(newNodeId);
         return newNodeId;
     }
 
-    private processBranchBlockWrapper(statement: ts.Statement): void{
+    function processBranchBlockWrapper(statement: ts.Statement): void{
         if(statement.kind === ts.SyntaxKind.Block){
-            this.processBlockStatements((statement as ts.Block).statements); 
+            processBlockStatements((statement as ts.Block).statements); 
         }
         else{
             const block: Array<ts.Statement> = [statement];
-            this.processBlockStatements(block);
+            processBlockStatements(block);
         }
     }
 
-    private prepareForWhileStatementPatching(symbolTableCopy: Map<string, NodeId>, ): [NodeId, Map<NodeId, string>] {
-        const previousPatchingVariablesCounter: NodeId = this.patchingVariablesCounter;
+    function prepareForWhileStatementPatching(symbolTableCopy: Map<string, NodeId>, ): [NodeId, Map<NodeId, string>] {
+        const previousPatchingVariablesCounter: NodeId = patchingVariablesCounter;
         const patchingIdToVarName: Map<NodeId, string> = new Map<NodeId, string>();
         symbolTableCopy.forEach((nodeId: NodeId, varName: string) => {
-            this.symbolTable.updateNodeId(varName, this.patchingVariablesCounter);
-            patchingIdToVarName.set(this.patchingVariablesCounter, varName);
-            this.patchingVariablesCounter--;
+            symbolTable.updateNodeId(varName, patchingVariablesCounter);
+            patchingIdToVarName.set(patchingVariablesCounter, varName);
+            patchingVariablesCounter--;
         });
         return [previousPatchingVariablesCounter, patchingIdToVarName];
     }
 
-    private whileStatementPatching(patchingIdToVarName: Map<NodeId, string>): void {
-        const edgesWithNegativeSource: Array<Edge> = this.graph.getEdgesWithNegativeSource();
+    function whileStatementPatching(patchingIdToVarName: Map<NodeId, string>): void {
+        const edgesWithNegativeSource: Array<Edge> = graph.getEdgesWithNegativeSource();
         edgesWithNegativeSource.forEach((edge: Edge) => {
             const varName: string = patchingIdToVarName.get(edge.srcId) as string;
-            const nodeId: NodeId = this.symbolTable.getIdByName(varName);
+            const nodeId: NodeId = symbolTable.getIdByName(varName);
             edge.srcId = nodeId;
         });
     }
 
-    private processBranchChangedVars(symbolTableCopy: Map<string, NodeId>): Map<string, NodeId> {
+    function processBranchChangedVars(symbolTableCopy: Map<string, NodeId>): Map<string, NodeId> {
         const changedVars: Map<string, NodeId> = new Map<string, NodeId>();
         symbolTableCopy.forEach((nodeId: NodeId, varName: string) => {
-            const currentNodeId: NodeId = this.symbolTable.getIdByName(varName);
-            this.symbolTable.updateNodeId(varName, nodeId); // we can recover the nodeId anyway
+            const currentNodeId: NodeId = symbolTable.getIdByName(varName);
+            symbolTable.updateNodeId(varName, nodeId); // we can recover the nodeId anyway
             if (currentNodeId >= 0 && currentNodeId !== nodeId) { // the variable was changed during the block
                 changedVars.set(varName, currentNodeId);
             }
@@ -311,107 +295,107 @@ export class Extractor {
         return changedVars;
     }
 
-    private emitContinueNode(): void {
-        const continueNodeId: NodeId = this.graph.addVertex(VertexType.Continue);
-        this.nextControl(continueNodeId);
-        this.graph.addEdge(continueNodeId, this.whileStack[0], "control", EdgeType.Control);
+    function emitContinueNode(): void {
+        const continueNodeId: NodeId = graph.addVertex(VertexType.Continue);
+        nextControl(continueNodeId);
+        graph.addEdge(continueNodeId, whileStack[0], "control", EdgeType.Control);
     }
 
-    private emitBreakNode(): void {
-        const breakNodeId: NodeId = this.graph.addVertex(VertexType.Break);
-        this.nextControl(breakNodeId);
-        this.breakStack[0].push(breakNodeId);
+    function emitBreakNode(): void {
+        const breakNodeId: NodeId = graph.addVertex(VertexType.Break);
+        nextControl(breakNodeId);
+        breakStack[0].push(breakNodeId);
     }
 
-    private processWhileStatement(whileStatement: ts.WhileStatement): void {
-        const preMergeControlVertex: NodeId = this.controlVertex;
-        const whileNodeId: NodeId = this.graph.addVertex(VertexType.While);
-        const mergeNodeId: NodeId = this.graph.addVertex(VertexType.Merge);
-        this.graph.addEdge(whileNodeId, mergeNodeId, "association", EdgeType.Association);
+    function processWhileStatement(whileStatement: ts.WhileStatement): void {
+        const preMergeControlVertex: NodeId = controlVertex;
+        const whileNodeId: NodeId = graph.addVertex(VertexType.While);
+        const mergeNodeId: NodeId = graph.addVertex(VertexType.Merge);
+        graph.addEdge(whileNodeId, mergeNodeId, "association", EdgeType.Association);
 
-        this.whileStack.unshift(mergeNodeId);
-        this.breakStack.unshift(new Array<NodeId>()); // the list is popped right after backpatching it inside nextControl()
+        whileStack.unshift(mergeNodeId);
+        breakStack.unshift(new Array<NodeId>()); // the list is popped right after backpatching it inside nextControl()
 
-        const symbolTableCopy: Map<string, NodeId> = this.symbolTable.getCopy();
-        const [previousPatchingVariablesCounter, patchingIdToVarName] = this.prepareForWhileStatementPatching(symbolTableCopy);
+        const symbolTableCopy: Map<string, NodeId> = symbolTable.getCopy();
+        const [previousPatchingVariablesCounter, patchingIdToVarName] = prepareForWhileStatementPatching(symbolTableCopy);
 
-        const expNodeId: NodeId = this.processExpression(whileStatement.expression);
-        this.graph.addEdge(expNodeId, whileNodeId, "condition",  EdgeType.Data);
-        this.currentBranchType = true;
-        this.nextControl(mergeNodeId);
-        this.nextControl(whileNodeId);
-        this.processBranchBlockWrapper(whileStatement.statement);
+        const expNodeId: NodeId = processExpression(whileStatement.expression);
+        graph.addEdge(expNodeId, whileNodeId, "condition",  EdgeType.Data);
+        currentBranchType = true;
+        nextControl(mergeNodeId);
+        nextControl(whileNodeId);
+        processBranchBlockWrapper(whileStatement.statement);
 
-        const lastTrueBranchControlVertex: NodeId = this.getLastBranchControlVertex(whileNodeId);
+        const lastTrueBranchControlVertex: NodeId = getLastBranchControlVertex(whileNodeId);
 
-        const changedVars: Map<string, NodeId> = this.processBranchChangedVars(symbolTableCopy);
-        this.createPhiVertices(symbolTableCopy, changedVars, new Map<string, NodeId>(),
+        const changedVars: Map<string, NodeId> = processBranchChangedVars(symbolTableCopy);
+        createPhiVertices(symbolTableCopy, changedVars, new Map<string, NodeId>(),
                                mergeNodeId, lastTrueBranchControlVertex, preMergeControlVertex);
 
-        this.whileStatementPatching(patchingIdToVarName);
+        whileStatementPatching(patchingIdToVarName);
 
-        this.nextControl(mergeNodeId);
-        this.controlVertex = whileNodeId;
-        this.currentBranchType = false;
-        this.patchingVariablesCounter = previousPatchingVariablesCounter;
-        this.whileStack.shift();
+        nextControl(mergeNodeId);
+        controlVertex = whileNodeId;
+        currentBranchType = false;
+        patchingVariablesCounter = previousPatchingVariablesCounter;
+        whileStack.shift();
     }
 
-    private processIfStatement(ifStatement: ts.IfStatement): void {
-        const expNodeId: NodeId = this.processExpression(ifStatement.expression);
+    function processIfStatement(ifStatement: ts.IfStatement): void {
+        const expNodeId: NodeId = processExpression(ifStatement.expression);
 
-        const ifNodeId: NodeId = this.graph.addVertex(VertexType.If);
-        this.nextControl(ifNodeId);
+        const ifNodeId: NodeId = graph.addVertex(VertexType.If);
+        nextControl(ifNodeId);
 
-        this.graph.addEdge(expNodeId, ifNodeId, "condition", EdgeType.Data);
+        graph.addEdge(expNodeId, ifNodeId, "condition", EdgeType.Data);
 
-        const symbolTableCopy: Map<string, NodeId> = this.symbolTable.getCopy();
+        const symbolTableCopy: Map<string, NodeId> = symbolTable.getCopy();
 
-        const mergeNodeId: NodeId = this.graph.addVertex(VertexType.Merge);
-        this.graph.addEdge(ifNodeId, mergeNodeId, "association", EdgeType.Association);
+        const mergeNodeId: NodeId = graph.addVertex(VertexType.Merge);
+        graph.addEdge(ifNodeId, mergeNodeId, "association", EdgeType.Association);
 
-        this.currentBranchType = true;
-        this.processBranchBlockWrapper(ifStatement.thenStatement);
+        currentBranchType = true;
+        processBranchBlockWrapper(ifStatement.thenStatement);
 
-        const trueBranchChangedVars: Map<string, NodeId> = this.processBranchChangedVars(symbolTableCopy);
+        const trueBranchChangedVars: Map<string, NodeId> = processBranchChangedVars(symbolTableCopy);
 
-        const lastTrueBranchControlVertex: NodeId = this.getLastBranchControlVertex(ifNodeId);
-        this.nextControl(mergeNodeId);
-        this.controlVertex = ifNodeId;
+        const lastTrueBranchControlVertex: NodeId = getLastBranchControlVertex(ifNodeId);
+        nextControl(mergeNodeId);
+        controlVertex = ifNodeId;
 
         let falseBranchChangedVars: Map<string, NodeId> = new Map<string, NodeId>();
-        this.currentBranchType = false;
+        currentBranchType = false;
         if (ifStatement.elseStatement !== undefined) {
             // In case we have else-if then ifStatement.elseStatement is a ifStatement itself.
             // Otherwise, the ifStatement.elseStatement is a block of the false branch.
             if (ifStatement.elseStatement.kind === ts.SyntaxKind.IfStatement) {
-                this.processIfStatement(ifStatement.elseStatement as ts.IfStatement);
+                processIfStatement(ifStatement.elseStatement as ts.IfStatement);
             }
             else {
-                this.processBranchBlockWrapper(ifStatement.elseStatement);
+                processBranchBlockWrapper(ifStatement.elseStatement);
             }
-            falseBranchChangedVars = this.processBranchChangedVars(symbolTableCopy);
+            falseBranchChangedVars = processBranchChangedVars(symbolTableCopy);
         }
 
-        const lastFalseBranchControlVertex: NodeId = this.getLastBranchControlVertex(ifNodeId);
-        this.nextControl(mergeNodeId);
+        const lastFalseBranchControlVertex: NodeId = getLastBranchControlVertex(ifNodeId);
+        nextControl(mergeNodeId);
 
-        this.createPhiVertices(symbolTableCopy, trueBranchChangedVars, falseBranchChangedVars,
+        createPhiVertices(symbolTableCopy, trueBranchChangedVars, falseBranchChangedVars,
                                mergeNodeId, lastTrueBranchControlVertex, lastFalseBranchControlVertex);
     }
 
-    private getLastBranchControlVertex(StartBlockNodeId: NodeId) : NodeId {
+    function getLastBranchControlVertex(StartBlockNodeId: NodeId) : NodeId {
         // when there are no control vertices inside the branch block, we want to create a dummy
         // node for the matching phi vertices.
-        if (StartBlockNodeId === this.controlVertex) {
-            const dummyNodeId: NodeId = this.graph.addVertex(VertexType.Dummy, {});
-            this.nextControl(dummyNodeId);
+        if (StartBlockNodeId === controlVertex) {
+            const dummyNodeId: NodeId = graph.addVertex(VertexType.Dummy, {});
+            nextControl(dummyNodeId);
             return dummyNodeId;
         }
-        return this.controlVertex;
+        return controlVertex;
     }
 
-    private createPhiVertices(symbolTableCopy: Map<string, NodeId>,
+    function createPhiVertices(symbolTableCopy: Map<string, NodeId>,
                               trueBranchSymbolTable: Map<string, NodeId>,
                               falseBranchSymbolTable: Map<string, NodeId>,
                               mergeNodeId: NodeId,
@@ -428,52 +412,52 @@ export class Extractor {
 
             if (!(trueBranchNodeId) && !(falseBranchNodeId)) {
                 // TODO: assert (remove after testing)
-                if (nodeId !== this.symbolTable.getIdByName(varName)) {
+                if (nodeId !== symbolTable.getIdByName(varName)) {
                     throw new Error(`unexpected node id ${nodeId} in symbol table`);
                 }
             }
             else {
-                const phiNodeId: NodeId = this.graph.addVertex(VertexType.Phi, {mergeId: mergeNodeId});
-                this.graph.addEdge(phiNodeId, mergeNodeId, "association", EdgeType.Association);
+                const phiNodeId: NodeId = graph.addVertex(VertexType.Phi, {mergeId: mergeNodeId});
+                graph.addEdge(phiNodeId, mergeNodeId, "association", EdgeType.Association);
 
                 if (trueBranchNodeId && falseBranchNodeId) {
-                    this.graph.addEdge(trueBranchNodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
-                    this.graph.addEdge(falseBranchNodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
+                    graph.addEdge(trueBranchNodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
+                    graph.addEdge(falseBranchNodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
                 }
                 else if (trueBranchNodeId) {
-                    this.graph.addEdge(trueBranchNodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
-                    this.graph.addEdge(nodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
+                    graph.addEdge(trueBranchNodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
+                    graph.addEdge(nodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
                 }
                 else if (falseBranchNodeId) {
-                    this.graph.addEdge(falseBranchNodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
-                    this.graph.addEdge(nodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
+                    graph.addEdge(falseBranchNodeId, phiNodeId, phiEdgesLabels.false, EdgeType.Data);
+                    graph.addEdge(nodeId, phiNodeId, phiEdgesLabels.true, EdgeType.Data);
                 }
                 else {
                     // TODO: assert (remove after testing)
                     throw new Error(`logical error`);
                 }
-                this.symbolTable.updateNodeId(varName, phiNodeId);
+                symbolTable.updateNodeId(varName, phiNodeId);
             }
         });
     }
 
-    private processReturnStatement(retStatement: ts.ReturnStatement): void {
-        const currentFuncNodeId: NodeId = this.functionsStack[0];
-        const returnNodeId: NodeId = this.graph.addVertex(VertexType.Return);
-        this.graph.addEdge(returnNodeId, currentFuncNodeId, "association", EdgeType.Association);
-        this.nextControl(returnNodeId);
+    function processReturnStatement(retStatement: ts.ReturnStatement): void {
+        const currentFuncNodeId: NodeId = functionsStack[0];
+        const returnNodeId: NodeId = graph.addVertex(VertexType.Return);
+        graph.addEdge(returnNodeId, currentFuncNodeId, "association", EdgeType.Association);
+        nextControl(returnNodeId);
 
         if (retStatement.expression !== undefined) {
-            const expNodeId: NodeId = this.processExpression(retStatement.expression);
-            this.graph.addEdge(expNodeId, returnNodeId, "value", EdgeType.Data)
+            const expNodeId: NodeId = processExpression(retStatement.expression);
+            graph.addEdge(expNodeId, returnNodeId, "value", EdgeType.Data)
         }
     }
 
-    private processVariableDeclarationList(varDeclList: ts.VariableDeclarationList): void {
+    function processVariableDeclarationList(varDeclList: ts.VariableDeclarationList): void {
         varDeclList.forEachChild(child => {
             switch (child.kind) {
                 case ts.SyntaxKind.VariableDeclaration:
-                    this.processVariableDeclaration(child as ts.VariableDeclaration);
+                    processVariableDeclaration(child as ts.VariableDeclaration);
                     break;
                 default:
                     throw new Error(`not implemented`);
@@ -481,68 +465,68 @@ export class Extractor {
         });
     }
 
-    private processVariableDeclaration(varDecl: ts.VariableDeclaration): void {
+    function processVariableDeclaration(varDecl: ts.VariableDeclaration): void {
         const varName: string = varDecl.name['escapedText'];
 
         if (varDecl.initializer !== undefined) {
-            const expNodeId: NodeId = this.processExpression(varDecl.initializer as ts.Expression);
-            this.symbolTable.addSymbol(varName, expNodeId);
+            const expNodeId: NodeId = processExpression(varDecl.initializer as ts.Expression);
+            symbolTable.addSymbol(varName, expNodeId);
         }
         else {
-            this.symbolTable.addSymbol(varName, 0);
+            symbolTable.addSymbol(varName, 0);
         }
     }
 
-    private processExpression(expression: ts.Expression): NodeId {
+    function processExpression(expression: ts.Expression): NodeId {
         let expNodeId: NodeId;
         switch (expression.kind) {
             case ts.SyntaxKind.NumericLiteral:
-                expNodeId = this.processNumericLiteral(expression as ts.NumericLiteral);
+                expNodeId = processNumericLiteral(expression as ts.NumericLiteral);
                 break;
             case ts.SyntaxKind.StringLiteral:
-                expNodeId = this.processStringLiteral(expression as ts.StringLiteral);
+                expNodeId = processStringLiteral(expression as ts.StringLiteral);
                 break;
             case ts.SyntaxKind.TrueKeyword:
-                expNodeId = this.emitTrueLiteralNode();
+                expNodeId = emitTrueLiteralNode();
                 break;
             case ts.SyntaxKind.FalseKeyword:
-                expNodeId = this.emitFalseLiteralNode();
+                expNodeId = emitFalseLiteralNode();
                 break;
             case ts.SyntaxKind.PrefixUnaryExpression:
-                expNodeId = this.processPrefixUnaryExpression(expression as ts.PrefixUnaryExpression);
+                expNodeId = processPrefixUnaryExpression(expression as ts.PrefixUnaryExpression);
                 break;
             case ts.SyntaxKind.BinaryExpression:
-                expNodeId = this.processBinaryExpression(expression as ts.BinaryExpression);
+                expNodeId = processBinaryExpression(expression as ts.BinaryExpression);
                 break;
             case ts.SyntaxKind.ParenthesizedExpression:
-                expNodeId = this.processParenthesizedExpression(expression as ts.ParenthesizedExpression);
+                expNodeId = processParenthesizedExpression(expression as ts.ParenthesizedExpression);
                 break;
             case ts.SyntaxKind.Identifier:
-                expNodeId = this.processIdentifierExpression(expression as ts.Identifier);
+                expNodeId = processIdentifierExpression(expression as ts.Identifier);
                 break;
             case ts.SyntaxKind.CallExpression:
-                expNodeId = this.processCallExpression(expression as ts.CallExpression);
+                expNodeId = processCallExpression(expression as ts.CallExpression);
                 break;
             case ts.SyntaxKind.NewExpression:
-                expNodeId = this.processNewExpression(expression as ts.NewExpression);
+                expNodeId = processNewExpression(expression as ts.NewExpression);
                 break;
             case ts.SyntaxKind.PropertyAccessExpression:
-                expNodeId = this.processPropertyAccessExpression(expression as ts.PropertyAccessExpression);
+                expNodeId = processPropertyAccessExpression(expression as ts.PropertyAccessExpression);
                 break;
             case ts.SyntaxKind.ElementAccessExpression:
-                expNodeId = this.processElementAccessExpression(expression as ts.ElementAccessExpression);
+                expNodeId = processElementAccessExpression(expression as ts.ElementAccessExpression);
                 break;
             case ts.SyntaxKind.ThisKeyword:
-                expNodeId = this.emitThisNode();
+                expNodeId = emitThisNode();
                 break;
             case ts.SyntaxKind.ArrayLiteralExpression:
-                expNodeId = this.processArrayLiteralExpression(expression as ts.ArrayLiteralExpression);
+                expNodeId = processArrayLiteralExpression(expression as ts.ArrayLiteralExpression);
                 break;
             case ts.SyntaxKind.ObjectLiteralExpression:
-                expNodeId = this.processObjectLiteralExpression(expression as ts.ObjectLiteralExpression);
+                expNodeId = processObjectLiteralExpression(expression as ts.ObjectLiteralExpression);
                 break;
             case ts.SyntaxKind.FunctionExpression:
-                expNodeId = this.processFunctionExpression(expression as ts.FunctionExpression);
+                expNodeId = processFunctionExpression(expression as ts.FunctionExpression);
                 break;
             default:
                 throw new Error(`not implemented`);
@@ -550,80 +534,80 @@ export class Extractor {
         return expNodeId;
     }
 
-    private processArrayLiteralExpression(arrayLiteralExp: ts.ArrayLiteralExpression): NodeId {
-        const newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: "Array"});
-        this.nextControl(newNodeId);
+    function processArrayLiteralExpression(arrayLiteralExp: ts.ArrayLiteralExpression): NodeId {
+        const newNodeId: NodeId = graph.addVertex(VertexType.New, {name: "Array"});
+        nextControl(newNodeId);
 
         arrayLiteralExp.elements.forEach((element: ts.Expression, index: number) => {
-            const expNodeId: NodeId = this.processExpression(element);
-            const indexNodeId: NodeId = this.graph.getSymbolVertexId(String(index));
-            this.createStoreNode(expNodeId, newNodeId, indexNodeId);
+            const expNodeId: NodeId = processExpression(element);
+            const indexNodeId: NodeId = graph.getSymbolVertexId(String(index));
+            createStoreNode(expNodeId, newNodeId, indexNodeId);
         });
 
         return newNodeId;
     }
 
-    private processObjectLiteralExpression(objectLiteralExp: ts.ObjectLiteralExpression): NodeId {
-        const newNodeId: NodeId = this.graph.addVertex(VertexType.New, {name: "Object"});
-        this.nextControl(newNodeId);
+    function processObjectLiteralExpression(objectLiteralExp: ts.ObjectLiteralExpression): NodeId {
+        const newNodeId: NodeId = graph.addVertex(VertexType.New, {name: "Object"});
+        nextControl(newNodeId);
 
         objectLiteralExp.properties.forEach((newProperty: ts.ObjectLiteralElementLike) => {
-            const expNodeId: NodeId = this.processExpression((newProperty as ts.PropertyAssignment).initializer);
-            const propertyName: string = Extractor.getIdentifierName((newProperty as ts.PropertyAssignment).name);
-            const propertyNodeId: NodeId = this.graph.getSymbolVertexId(propertyName);
-            this.createStoreNode(expNodeId, newNodeId, propertyNodeId);
+            const expNodeId: NodeId = processExpression((newProperty as ts.PropertyAssignment).initializer);
+            const propertyName: string = getIdentifierName((newProperty as ts.PropertyAssignment).name);
+            const propertyNodeId: NodeId = graph.getSymbolVertexId(propertyName);
+            createStoreNode(expNodeId, newNodeId, propertyNodeId);
         });
 
         return newNodeId;
     }
 
-    private processFunctionExpression(funcExp: ts.FunctionExpression): NodeId {
-        const prevControlVertex: NodeId = this.controlVertex;
+    function processFunctionExpression(funcExp: ts.FunctionExpression): NodeId {
+        const prevControlVertex: NodeId = controlVertex;
 
-        const funcStartNodeId: NodeId = this.graph.addVertex(VertexType.Start, {name: "__anonymousFunction__"});
-        this.controlVertex = funcStartNodeId;
+        const funcStartNodeId: NodeId = graph.addVertex(VertexType.Start, {name: "__anonymousFunction__"});
+        controlVertex = funcStartNodeId;
 
-        this.symbolTable.addNewScope();
-        this.functionsStack.unshift(funcStartNodeId);
+        symbolTable.addNewScope();
+        functionsStack.unshift(funcStartNodeId);
 
-        const thisNodeId: NodeId = this.graph.addVertex(VertexType.Parameter, {pos: 0});
-        this.graph.addEdge(thisNodeId, funcStartNodeId, "association", EdgeType.Association);
-        this.symbolTable.addSymbol('this', thisNodeId);
-        this.processParameters(funcExp.parameters, funcStartNodeId);
-        this.processBlockStatements((funcExp.body as ts.Block).statements);
+        const thisNodeId: NodeId = graph.addVertex(VertexType.Parameter, {pos: 0});
+        graph.addEdge(thisNodeId, funcStartNodeId, "association", EdgeType.Association);
+        symbolTable.addSymbol('this', thisNodeId);
+        processParameters(funcExp.parameters, funcStartNodeId);
+        processBlockStatements((funcExp.body as ts.Block).statements);
 
-        this.functionsStack.shift();
-        this.symbolTable.removeCurrentScope();
+        functionsStack.shift();
+        symbolTable.removeCurrentScope();
 
-        this.controlVertex = prevControlVertex;
+        controlVertex = prevControlVertex;
 
         return funcStartNodeId;
     }
 
-    private emitThisNode(): NodeId {
-        return this.symbolTable.getIdByName('this');
+    function emitThisNode(): NodeId {
+        return symbolTable.getIdByName('this');
     }
 
-    private processNumericLiteral(numLiteral: ts.NumericLiteral): NodeId {
+    function processNumericLiteral(numLiteral: ts.NumericLiteral): NodeId {
         const value = Number(numLiteral.text);
 
-        return this.graph.getConstVertexId(value);
+        return graph.getConstVertexId(value);
     }
 
-    private processStringLiteral(strLiteral: ts.StringLiteral): NodeId {
-        return this.graph.getConstVertexId(strLiteral.text);
+    function processStringLiteral(strLiteral: ts.StringLiteral): NodeId {
+        return graph.getConstVertexId(strLiteral.text);
     }
 
-    private emitTrueLiteralNode(): NodeId {
-        return this.graph.getConstVertexId(true);
+    function emitTrueLiteralNode(): NodeId {
+        return graph.getConstVertexId(true);
     }
 
-    private emitFalseLiteralNode(): NodeId {
-        return this.graph.getConstVertexId(false);
+    function emitFalseLiteralNode(): NodeId {
+        return graph.getConstVertexId(false);
     }
 
-    private processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression): NodeId {
-        const expNodeId: NodeId = this.processExpression(prefixUnaryExpression.operand as ts.Expression);
+    function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression): NodeId {
+        const expNodeId: NodeId = processExpression(prefixUnaryExpression.operand as ts.Expression);
         let unaryOperation: UnaryOperation;
         switch(prefixUnaryExpression.operator){
             case ts.SyntaxKind.PlusToken:
@@ -638,12 +622,12 @@ export class Extractor {
             default:
                 throw new Error(`not implemented`);
         }
-        const operationNodeId: NodeId = this.graph.addVertex(VertexType.UnaryOperation, {operation: unaryOperation});
-        this.graph.addEdge(expNodeId, operationNodeId, "prefix", EdgeType.Data);
+        const operationNodeId: NodeId = graph.addVertex(VertexType.UnaryOperation, {operation: unaryOperation});
+        graph.addEdge(expNodeId, operationNodeId, "prefix", EdgeType.Data);
         return operationNodeId;
     }
 
-    private processBinaryExpression(binExpression: ts.BinaryExpression): NodeId {
+    function processBinaryExpression(binExpression: ts.BinaryExpression): NodeId {
         let binaryOperation: BinaryOperation;
         let isAssignOperation = false;
 
@@ -698,21 +682,21 @@ export class Extractor {
                 throw new Error(`not implemented`);
         }
 
-        const rightNodeId: NodeId = this.processExpression(binExpression.right);
+        const rightNodeId: NodeId = processExpression(binExpression.right);
         if (isAssignOperation) {
             // for cases a variable that is already defined is being re-assigned
             const leftExpression: ts.Expression = binExpression.left;
             if (leftExpression.kind === ts.SyntaxKind.PropertyAccessExpression) {
-                const [objectNodeId, propertyNodeId]: [NodeId, NodeId] = this.getPropertyAccessArguments(leftExpression as ts.PropertyAccessExpression);
-                return this.createStoreNode(rightNodeId, objectNodeId, propertyNodeId);
+                const [objectNodeId, propertyNodeId]: [NodeId, NodeId] = getPropertyAccessArguments(leftExpression as ts.PropertyAccessExpression);
+                return createStoreNode(rightNodeId, objectNodeId, propertyNodeId);
             }
             else if (leftExpression.kind === ts.SyntaxKind.ElementAccessExpression) {
-                const [objectNodeId, propertyArgumentNodeId] : [NodeId, NodeId] = this.getElementAccessArguments(leftExpression as ts.ElementAccessExpression);
-                return this.createStoreNode(rightNodeId, objectNodeId, propertyArgumentNodeId);
+                const [objectNodeId, propertyArgumentNodeId] : [NodeId, NodeId] = getElementAccessArguments(leftExpression as ts.ElementAccessExpression);
+                return createStoreNode(rightNodeId, objectNodeId, propertyArgumentNodeId);
             }
             else if (leftExpression.kind === ts.SyntaxKind.Identifier) {
                 const varName: string = binExpression.left['escapedText'];
-                this.symbolTable.updateNodeId(varName, rightNodeId);
+                symbolTable.updateNodeId(varName, rightNodeId);
                 return rightNodeId;
             }
             else {
@@ -720,65 +704,65 @@ export class Extractor {
             }
         }
         else {
-            const leftNodeId: NodeId = this.processExpression(binExpression.left);
-            const operationNodeId: NodeId = this.graph.addVertex(VertexType.BinaryOperation, {operation: binaryOperation});
-            this.graph.addEdge(rightNodeId, operationNodeId, "right", EdgeType.Data);
-            this.graph.addEdge(leftNodeId, operationNodeId, "left", EdgeType.Data);
+            const leftNodeId: NodeId = processExpression(binExpression.left);
+            const operationNodeId: NodeId = graph.addVertex(VertexType.BinaryOperation, {operation: binaryOperation});
+            graph.addEdge(rightNodeId, operationNodeId, "right", EdgeType.Data);
+            graph.addEdge(leftNodeId, operationNodeId, "left", EdgeType.Data);
             return operationNodeId;
         }
     }
 
-    private getPropertyAccessArguments(propertyAccessExpression: ts.PropertyAccessExpression): [NodeId, NodeId] {
-        const propertyName: string = Extractor.getIdentifierName((propertyAccessExpression.name) as ts.Identifier);
-        const properyNodeId: NodeId = this.graph.getSymbolVertexId(propertyName);
-        const objectNodeId: NodeId = this.processExpression(propertyAccessExpression.expression);
+    function getPropertyAccessArguments(propertyAccessExpression: ts.PropertyAccessExpression): [NodeId, NodeId] {
+        const propertyName: string = getIdentifierName((propertyAccessExpression.name) as ts.Identifier);
+        const properyNodeId: NodeId = graph.getSymbolVertexId(propertyName);
+        const objectNodeId: NodeId = processExpression(propertyAccessExpression.expression);
         return [objectNodeId, properyNodeId];
     }
 
-    private getElementAccessArguments(elementAccessExpression: ts.ElementAccessExpression): [NodeId, NodeId] {
-        const propertyArgumentNodeId: NodeId = this.processExpression(elementAccessExpression.argumentExpression);
-        const objectNodeId: NodeId = this.processExpression(elementAccessExpression.expression);
+    function getElementAccessArguments(elementAccessExpression: ts.ElementAccessExpression): [NodeId, NodeId] {
+        const propertyArgumentNodeId: NodeId = processExpression(elementAccessExpression.argumentExpression);
+        const objectNodeId: NodeId = processExpression(elementAccessExpression.expression);
         return [objectNodeId, propertyArgumentNodeId];
     }
 
-    private createStoreNode(valueNodeId: NodeId, objectNodeId: NodeId, propertyNodeId: NodeId): NodeId {
-        const storeNodeId: NodeId = this.graph.addVertex(VertexType.Store);
-        this.nextControl(storeNodeId);
+    function createStoreNode(valueNodeId: NodeId, objectNodeId: NodeId, propertyNodeId: NodeId): NodeId {
+        const storeNodeId: NodeId = graph.addVertex(VertexType.Store);
+        nextControl(storeNodeId);
 
-        this.graph.addEdge(valueNodeId, storeNodeId, "value", EdgeType.Data);
-        this.graph.addEdge(objectNodeId, storeNodeId, "object", EdgeType.Data);
-        this.graph.addEdge(propertyNodeId, storeNodeId, "property", EdgeType.Data);
+        graph.addEdge(valueNodeId, storeNodeId, "value", EdgeType.Data);
+        graph.addEdge(objectNodeId, storeNodeId, "object", EdgeType.Data);
+        graph.addEdge(propertyNodeId, storeNodeId, "property", EdgeType.Data);
 
         return storeNodeId;
     }
 
-    private createLoadNode(objectNodeId: NodeId, propertyNodeId: NodeId): NodeId {
-        const loadNodeId: NodeId = this.graph.addVertex(VertexType.Load);
-        this.nextControl(loadNodeId);
+    function createLoadNode(objectNodeId: NodeId, propertyNodeId: NodeId): NodeId {
+        const loadNodeId: NodeId = graph.addVertex(VertexType.Load);
+        nextControl(loadNodeId);
 
-        this.graph.addEdge(objectNodeId, loadNodeId, "object", EdgeType.Data);
-        this.graph.addEdge(propertyNodeId, loadNodeId, "property", EdgeType.Data);
+        graph.addEdge(objectNodeId, loadNodeId, "object", EdgeType.Data);
+        graph.addEdge(propertyNodeId, loadNodeId, "property", EdgeType.Data);
 
         return loadNodeId;
     }
 
-    private processPropertyAccessExpression(propertyAccessExpression: ts.PropertyAccessExpression): NodeId {
-        const [objectNodeId, properyNodeId] : [NodeId, NodeId] = this.getPropertyAccessArguments(propertyAccessExpression);
-        return this.createLoadNode(objectNodeId, properyNodeId);
+    function processPropertyAccessExpression(propertyAccessExpression: ts.PropertyAccessExpression): NodeId {
+        const [objectNodeId, properyNodeId] : [NodeId, NodeId] = getPropertyAccessArguments(propertyAccessExpression);
+        return createLoadNode(objectNodeId, properyNodeId);
     }
 
-    private processElementAccessExpression(elementAccessExpression: ts.ElementAccessExpression) :NodeId {
-        const [objectNodeId, propertyArgumentNodeId] : [NodeId, NodeId] = this.getElementAccessArguments(elementAccessExpression);
-        return this.createLoadNode(objectNodeId, propertyArgumentNodeId);
+    function processElementAccessExpression(elementAccessExpression: ts.ElementAccessExpression) :NodeId {
+        const [objectNodeId, propertyArgumentNodeId] : [NodeId, NodeId] = getElementAccessArguments(elementAccessExpression);
+        return createLoadNode(objectNodeId, propertyArgumentNodeId);
     }
 
-    private processParenthesizedExpression(parenthesizedExpression: ts.ParenthesizedExpression): NodeId {
-        return this.processExpression(parenthesizedExpression.expression);
+    function processParenthesizedExpression(parenthesizedExpression: ts.ParenthesizedExpression): NodeId {
+        return processExpression(parenthesizedExpression.expression);
     }
 
     //for cases we use the identifier's value
-    private processIdentifierExpression(identifierExpression: ts.Identifier): NodeId {
-        const varName: string = Extractor.getIdentifierName(identifierExpression);
-        return this.symbolTable.getIdByName(varName);
+    function processIdentifierExpression(identifierExpression: ts.Identifier): NodeId {
+        const varName: string = getIdentifierName(identifierExpression);
+        return symbolTable.getIdByName(varName);
     }
 }
