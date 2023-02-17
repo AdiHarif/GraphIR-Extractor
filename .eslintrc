@@ -24,7 +24,8 @@
             {
                 "ignoreParameters": true
             }
-        ]
+        ],
+        "@typescript-eslint/no-array-constructor": "off"
     },
     "ignorePatterns": [
         "samples",
