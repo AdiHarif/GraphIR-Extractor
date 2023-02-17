@@ -98,3 +98,5 @@ export class SymbolTable {
     }
 
 }
+
+export type FlatSymbolTable = Map<string, NodeId>
