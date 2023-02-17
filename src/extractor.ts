@@ -2,14 +2,12 @@ import * as ts from "typescript";
 
 import { Graph, Edge, EdgeType } from "./graph";
 import { SymbolTable } from "./symbolTable";
-import { ConstTable } from "./constTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
 
 export class Extractor {
     private graph: Graph;
     private symbolTable: SymbolTable;
-    private constTable: ConstTable;
     private controlVertex: NodeId;
     private functionsStack: Array<NodeId>;
     private classesStack: Array<string>;
@@ -21,7 +19,6 @@ export class Extractor {
     public constructor() {
         this.graph = new Graph();
         this.symbolTable = new SymbolTable();
-        this.constTable = new ConstTable(this.graph);
         this.controlVertex = 0;
         this.functionsStack = new Array<NodeId>();
         this.classesStack = new Array<string>();
@@ -171,7 +168,7 @@ export class Extractor {
 
     private processFunctionDeclaration(funcDeclaration: ts.FunctionDeclaration): void {
         const funcName: string = funcDeclaration.name['escapedText'] as string;
-        const funcSymbolNodeId: NodeId = this.graph.addVertex(VertexType.Symbol, {name: funcName});
+        const funcSymbolNodeId: NodeId = this.graph.getSymbolVertexId(funcName);
         this.symbolTable.addSymbol(funcName, funcSymbolNodeId);
     }
 
@@ -571,7 +568,7 @@ export class Extractor {
 
         arrayLiteralExp.elements.forEach((element: ts.Expression, index: number) => {
             const expNodeId: NodeId = this.processExpression(element);
-            const indexNodeId: NodeId = this.constTable.getNodeId(String(index), true);
+            const indexNodeId: NodeId = this.graph.getSymbolVertexId(String(index));
             this.createStoreNode(expNodeId, newNodeId, indexNodeId);
         });
 
@@ -585,7 +582,7 @@ export class Extractor {
         objectLiteralExp.properties.forEach((newProperty: ts.ObjectLiteralElementLike) => {
             const expNodeId: NodeId = this.processExpression((newProperty as ts.PropertyAssignment).initializer);
             const propertyName: string = Extractor.getIdentifierName((newProperty as ts.PropertyAssignment).name);
-            const propertyNodeId: NodeId = this.constTable.getNodeId(propertyName, true);
+            const propertyNodeId: NodeId = this.graph.getSymbolVertexId(propertyName);
             this.createStoreNode(expNodeId, newNodeId, propertyNodeId);
         });
 
@@ -622,19 +619,19 @@ export class Extractor {
     private processNumericLiteral(numLiteral: ts.NumericLiteral): NodeId {
         const value = Number(numLiteral.text);
 
-        return this.constTable.getNodeId(value);
+        return this.graph.getConstVertexId(value);
     }
 
     private processStringLiteral(strLiteral: ts.StringLiteral): NodeId {
-        return this.constTable.getNodeId(strLiteral.text);
+        return this.graph.getConstVertexId(strLiteral.text);
     }
 
     private emitTrueLiteralNode(): NodeId {
-        return this.constTable.getNodeId(true);
+        return this.graph.getConstVertexId(true);
     }
 
     private emitFalseLiteralNode(): NodeId {
-        return this.constTable.getNodeId(false);
+        return this.graph.getConstVertexId(false);
     }
 
     private processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression): NodeId {
@@ -745,7 +742,7 @@ export class Extractor {
 
     private getPropertyAccessArguments(propertyAccessExpression: ts.PropertyAccessExpression): [NodeId, NodeId] {
         const propertyName: string = Extractor.getIdentifierName((propertyAccessExpression.name) as ts.Identifier);
-        const properyNodeId: NodeId = this.constTable.getNodeId(propertyName, true);
+        const properyNodeId: NodeId = this.graph.getSymbolVertexId(propertyName);
         const objectNodeId: NodeId = this.processExpression(propertyAccessExpression.expression);
         return [objectNodeId, properyNodeId];
     }

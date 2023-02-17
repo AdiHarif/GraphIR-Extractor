@@ -1,4 +1,5 @@
-import { NodeId, BinaryOperation, UnaryOperation } from "./types";
+
+import { Literal, NodeId, BinaryOperation, UnaryOperation } from "./types";
 
 export enum VertexKind {
     Control = 'control',
@@ -33,7 +34,7 @@ export abstract class ControlVertex extends Vertex {
 }
 
 export class ConstVertex extends DataVertex {
-    constructor(public readonly value: string | number) {
+    constructor(public readonly value: Literal) {
         super();
         this.label = String(value);
     }
@@ -118,11 +119,4 @@ export class LoadVertex extends ControlVertex {
 
 export class StoreVertex extends ControlVertex {
     public readonly label = 'store'
-}
-
-export class SymbolVertex extends DataVertex {
-    constructor(public readonly name: string) {
-        super();
-        this.label = `#${name}`;
-    }
 }

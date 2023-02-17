@@ -41,6 +41,7 @@ export enum VertexType {
     Break,
     New,
     Load,
-    Store,
-    Symbol
+    Store
 }
+
+export type Literal = number | string | boolean

@@ -1,7 +1,10 @@
 
+import assert from 'assert'
+
 import { NodeId, VertexType } from "./types";
 import * as vertex from "./vertex";
-
+import { Vertex } from './vertex'
+import { Literal } from './types'
 
 export enum EdgeType {
     Control = "control",
@@ -13,6 +16,8 @@ export class Graph {
     private edges: Array<Edge> = new Array<Edge>()
     private vertices: Map<NodeId, vertex.Vertex> = new Map<NodeId, vertex.Vertex>();
     private subGraphs: Array<Graph> = new Array<Graph>()
+
+    private constMap: Map<Literal, Vertex> = new Map()
 
     public getAllEdges(): Array<Edge> {
         return this.edges
@@ -101,9 +106,6 @@ export class Graph {
             case VertexType.Store:
                 newVertex = new vertex.StoreVertex();
                 break;
-            case VertexType.Symbol:
-                newVertex = new vertex.SymbolVertex(properties["name"]);
-                break;
             default:
                 throw new Error(`Undefined vertex type`);
         }
@@ -123,6 +125,20 @@ export class Graph {
             }
         }
         return this.vertices.get(nodeId);
+    }
+
+    public getConstVertexId(value: Literal): NodeId {
+        if (this.constMap.has(value)) {
+            return this.constMap.get(value).id
+        }
+        const newVertex = new vertex.ConstVertex(value)
+        assert(!this.vertices.has(newVertex.id))
+        this.vertices.set(newVertex.id, newVertex)
+        return newVertex.id
+    }
+
+    public getSymbolVertexId(value: string): NodeId {
+        return this.getConstVertexId(`#${value}`)
     }
 }
 
