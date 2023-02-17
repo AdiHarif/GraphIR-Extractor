@@ -5,7 +5,7 @@ import { SymbolTable } from "./symbolTable";
 import { NodeId, VertexType, BinaryOperation, UnaryOperation } from "./types";
 import * as vertex from "./vertex";
 import * as ast from './ts-ast'
-import { syntaxKindToBinaryOperation } from "./mappings";
+import { syntaxKindToBinaryOperation, syntaxKindToUnaryOperation } from "./mappings";
 
 export function extractIr(sourceFile: ts.SourceFile): Graph {
     const graph: Graph = new Graph();
@@ -584,20 +584,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
     function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression): NodeId {
         const expNodeId: NodeId = processExpression(prefixUnaryExpression.operand);
-        let unaryOperation: UnaryOperation;
-        switch(prefixUnaryExpression.operator){
-            case ts.SyntaxKind.PlusToken:
-                unaryOperation = UnaryOperation.Plus
-                break;
-            case ts.SyntaxKind.MinusToken:
-                unaryOperation = UnaryOperation.Minus;
-                break;
-            case ts.SyntaxKind.ExclamationToken:
-                unaryOperation = UnaryOperation.Not;
-                break;
-            default:
-                throw new Error(`not implemented`);
-        }
+        const unaryOperation: UnaryOperation = syntaxKindToUnaryOperation(prefixUnaryExpression.operator);
         const operationNodeId: NodeId = graph.addVertex(VertexType.UnaryOperation, {operation: unaryOperation});
         graph.addEdge(expNodeId, operationNodeId, "prefix", EdgeKind.Data);
         return operationNodeId;

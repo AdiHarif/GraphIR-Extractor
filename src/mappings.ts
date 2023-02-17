@@ -1,7 +1,20 @@
 
 import * as ts from 'typescript'
 
-import { BinaryOperation } from './types'
+import { BinaryOperation, UnaryOperation } from './types'
+
+const syntaxKindToUnaryOperationMap: { [key in ts.SyntaxKind]?: UnaryOperation } = {
+    [ts.SyntaxKind.PlusToken]: UnaryOperation.Plus,
+    [ts.SyntaxKind.MinusToken]: UnaryOperation.Minus,
+    [ts.SyntaxKind.ExclamationToken]: UnaryOperation.Not,
+}
+
+export function syntaxKindToUnaryOperation(kind: ts.SyntaxKind): UnaryOperation {
+    if (!(kind in syntaxKindToUnaryOperationMap)) {
+        throw new Error(`SyntaxKind ${ts.SyntaxKind[kind]} is either not an unary operator, or its not supported)`)
+    }
+    return syntaxKindToUnaryOperationMap[kind]
+}
 
 const syntaxKindToBinaryOperationMap: { [key in ts.SyntaxKind]?: BinaryOperation } = {
     [ts.SyntaxKind.PlusToken]: BinaryOperation.Add,
