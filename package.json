@@ -8,7 +8,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "python3 scripts/run.py"
+    "start": "python3 scripts/run.py",
+    "test": "jest"
   },
   "repository": {
     "type": "git",

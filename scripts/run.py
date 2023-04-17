@@ -17,8 +17,6 @@ def parse_args():
                     help='Skip build stage')
     ap.add_argument('-i', '--input', dest='input', nargs='+',
                     help='Run the analyzer on input file named <INPUT> (default: do not run anything)')
-    ap.add_argument('-o', '--output', dest='output', default='graph.txt',
-                    help='Save the graph inside file named <OUTPUT> (default: graph.txt)')
     ap.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
                     help='Print logs and output results')
     ap.add_argument('-c', '--clean', dest='clean', action='store_true', default=False,
