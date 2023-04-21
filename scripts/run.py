@@ -71,7 +71,6 @@ class Config:
     def __init__(self, args):
         self.build = args.build
         self.input = args.input
-        self.output = args.output
         self.verbose = args.verbose
         self.clean = args.clean
         self.paths = Paths()
@@ -85,7 +84,6 @@ class Stages:
     def clean(self):
         if self.cfg.clean:
             dirs = [
-                (self.cfg.paths.output_dir, 'out'),
                 (self.cfg.paths.build_dir, 'build')
             ]
             for dir_path, dir_name in dirs:
@@ -127,7 +125,6 @@ class Stages:
         elif not os.path.isdir(self.cfg.paths.build_dir):
             self.log.error('Build directory does not exist')
 
-        self._create_output_directory()
 
         run_cmd = self._get_run_command(input_file)
 
@@ -141,13 +138,11 @@ class Stages:
         else:
             if self.cfg.verbose:
                 self.log.info('Analyzer finished successfully', format=[Format.GREEN])
-                self.log.info(f'Output path: {os.path.join(self.cfg.paths.output_dir, self.cfg.output)}', format=[Format.BOLD])
 
     def _get_run_command(self, input_files):
         node = 'node'
         entry_point_file = os.path.join(self.cfg.paths.build_dir, 'main.js')
-        output_dir = self.cfg.paths.output_dir
-        return [node, entry_point_file, output_dir] + input_files
+        return [node, entry_point_file, 'out'] + input_files
 
     def _collect_sources(self):
         sources = []
@@ -161,14 +156,6 @@ class Stages:
                 sources.append(curr_path)
             elif os.path.isdir(curr_path):
                 self._collect_sources_rec(curr_path)
-
-    def _create_output_directory(self):
-        if self.cfg.verbose:
-            self.log.info('Creating output directory')
-        try:
-            os.makedirs(self.cfg.paths.output_dir, exist_ok=True)
-        except OSError as e:
-            self.log.error("Failed to create output directory", e.errno)
 
 def main():
     args = parse_args()
