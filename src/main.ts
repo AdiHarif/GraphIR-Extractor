@@ -16,4 +16,6 @@ function main() {
     exportIrToDot(ir, outDir)
 }
 
-main();
+if (require.main === module) {
+    main();
+}
