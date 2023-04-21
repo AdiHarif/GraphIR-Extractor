@@ -1,7 +1,7 @@
 {
-  "name": "typescript-analyzer",
+  "name": "ts-graph-extractor",
   "version": "1.0.0",
-  "description": "Typescript analyzer",
+  "description": "TS Graph Extractor",
   "main": "build/main.js",
   "directories": {
     "test": "tests"
@@ -11,17 +11,9 @@
     "start": "python3 scripts/run.py",
     "test": "jest"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Ortal1993/compilation-project.git"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Ortal1993/compilation-project/issues"
-  },
-  "homepage": "https://github.com/Ortal1993/compilation-project#readme",
   "dependencies": {
     "@types/node": "^18.11.9",
     "csv-writer": "^1.6.0",
