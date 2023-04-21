@@ -11,6 +11,7 @@
     "start": "python3 scripts/run.py",
     "test": "jest"
   },
+  "types": "build/graph.d.ts",
   "keywords": [],
   "author": "",
   "license": "ISC",
