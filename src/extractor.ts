@@ -14,7 +14,6 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     const functionsStack: Array<NodeId> = new Array();
     const classesStack: Array<string> = new Array();
     const whileStack: Array<NodeId> = new Array();
-    const breakStack: Array<Array<NodeId>> = new Array(); // stack of lists
     let currentBranchType = false;
     let patchingVariablesCounter: NodeId = -1
 
@@ -30,9 +29,8 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         // if (!currentControlVertex) {
         //     throw new Error(`Vertex with id ${controlVertex} does not exist`);
         // }
-        const doNotCreateEdge: boolean = currentControlVertex instanceof vertex.ReturnVertex ||
-                                       currentControlVertex instanceof vertex.ContinueVertex ||
-                                       currentControlVertex instanceof vertex.BreakVertex;
+        const doNotCreateEdge: boolean = currentControlVertex instanceof vertex.ReturnVertex;
+
         if (!doNotCreateEdge) {
             const isBranchVertex = currentControlVertex instanceof vertex.IfVertex ||
                                  currentControlVertex instanceof vertex.WhileVertex;
@@ -40,18 +38,6 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
             graph.addEdge(controlVertex, nextControlId, edgeLabel, EdgeKind.Control);
         }
         controlVertex = nextControlId;
-
-        if (currentControlVertex instanceof vertex.WhileVertex && currentBranchType === false) {
-            backpatchBreakEdges();
-        }
-    }
-
-    function backpatchBreakEdges(): void {
-        const currentBreakList: Array<NodeId> = breakStack[0];
-        for (const breakNodeId of currentBreakList) {
-            graph.addEdge(breakNodeId, controlVertex, "control", EdgeKind.Control);
-        }
-        breakStack.shift(); // pop the last break list
     }
 
     function processBlockStatements(statements: ts.NodeArray<ts.Statement> | Array<ts.Statement>): void {
@@ -87,12 +73,6 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
                     break;
                 case ts.SyntaxKind.WhileStatement:
                     processWhileStatement(statement as ts.WhileStatement);
-                    break;
-                case ts.SyntaxKind.ContinueStatement:
-                    emitContinueNode();
-                    break;
-                case ts.SyntaxKind.BreakStatement:
-                    emitBreakNode();
                     break;
                 default:
                     throw new Error(`not implemented`);
@@ -285,18 +265,6 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         return changedVars;
     }
 
-    function emitContinueNode(): void {
-        const continueNodeId: NodeId = graph.addVertex(VertexType.Continue);
-        nextControl(continueNodeId);
-        graph.addEdge(continueNodeId, whileStack[0], "control", EdgeKind.Control);
-    }
-
-    function emitBreakNode(): void {
-        const breakNodeId: NodeId = graph.addVertex(VertexType.Break);
-        nextControl(breakNodeId);
-        breakStack[0].push(breakNodeId);
-    }
-
     function processWhileStatement(whileStatement: ts.WhileStatement): void {
         const preMergeControlVertex: NodeId = controlVertex;
         const whileNodeId: NodeId = graph.addVertex(VertexType.While);
@@ -304,7 +272,6 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         graph.addEdge(whileNodeId, mergeNodeId, "association", EdgeKind.Association);
 
         whileStack.unshift(mergeNodeId);
-        breakStack.unshift(new Array<NodeId>()); // the list is popped right after backpatching it inside nextControl()
 
         const symbolTableCopy: Map<string, NodeId> = symbolTable.getCopy();
         const [previousPatchingVariablesCounter, patchingIdToVarName] = prepareForWhileStatementPatching(symbolTableCopy);

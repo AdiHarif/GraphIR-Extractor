@@ -105,14 +105,6 @@ export class ReturnVertex extends ControlVertex {
     public readonly label = 'return'
 }
 
-export class ContinueVertex extends ControlVertex {
-    public readonly label = 'continue'
-}
-
-export class BreakVertex extends ControlVertex {
-    public readonly label = 'break'
-}
-
 export class LoadVertex extends ControlVertex {
     public readonly label = 'load'
 }

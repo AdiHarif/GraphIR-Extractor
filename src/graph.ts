@@ -94,12 +94,6 @@ export class Graph {
             case VertexType.Return:
                 newVertex = new vertex.ReturnVertex();
                 break;
-            case VertexType.Continue:
-                newVertex = new vertex.ContinueVertex();
-                break;
-            case VertexType.Break:
-                newVertex = new vertex.BreakVertex();
-                break;
             case VertexType.Load:
                 newVertex = new vertex.LoadVertex();
                 break;
