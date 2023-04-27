@@ -1,4 +1,3 @@
-export type NodeId = number;
 
 export enum BinaryOperation {
     Add = '+',
@@ -43,5 +42,3 @@ export enum VertexType {
     Load,
     Store
 }
-
-export type Literal = number | string | boolean

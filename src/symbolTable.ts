@@ -1,7 +1,7 @@
 
-import { NodeId } from './types'
+import * as ir from 'graphir';
 
-export class SymbolTable extends Map<string, NodeId | string> {
+export class SymbolTable extends Map<string, ir.DataVertex> {
     public static get Empty(): SymbolTable {
         return new SymbolTable()
     }
