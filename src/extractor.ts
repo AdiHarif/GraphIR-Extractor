@@ -118,7 +118,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
     function processFunctionDeclaration(funcDeclaration: ts.FunctionDeclaration): void {
         const funcName: string = funcDeclaration.name['escapedText'] as string;
-        const funcSymbolNodeId: NodeId = graph.getSymbolVertexId(funcName);
+        const funcSymbolNodeId: NodeId = 0; //TODO: restore
         symbolTable.addSymbol(funcName, funcSymbolNodeId);
     }
 
@@ -438,10 +438,10 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
                 expNodeId = processStringLiteral(expression as ts.StringLiteral);
                 break;
             case ts.SyntaxKind.TrueKeyword:
-                expNodeId = graph.getConstVertexId(true);
+                //TODO: restore support
                 break;
             case ts.SyntaxKind.FalseKeyword:
-                expNodeId = graph.getConstVertexId(false);
+                //TODO: restore support
                 break;
             case ts.SyntaxKind.PrefixUnaryExpression:
                 expNodeId = processPrefixUnaryExpression(expression as ts.PrefixUnaryExpression);
@@ -491,7 +491,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
         arrayLiteralExp.elements.forEach((element: ts.Expression, index: number) => {
             const expNodeId: NodeId = processExpression(element);
-            const indexNodeId: NodeId = graph.getSymbolVertexId(String(index));
+            const indexNodeId: NodeId = 0; //TODO: restore
             createStoreNode(expNodeId, newNodeId, indexNodeId);
         });
 
@@ -505,7 +505,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
         objectLiteralExp.properties.forEach((newProperty: ts.ObjectLiteralElementLike) => {
             const expNodeId: NodeId = processExpression((newProperty as ts.PropertyAssignment).initializer);
             const propertyName: string = ast.getIdentifierName((newProperty as ts.PropertyAssignment).name);
-            const propertyNodeId: NodeId = graph.getSymbolVertexId(propertyName);
+            const propertyNodeId: NodeId = 0; //TODO: restore
             createStoreNode(expNodeId, newNodeId, propertyNodeId);
         });
 
@@ -542,11 +542,11 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
     function processNumericLiteral(numLiteral: ts.NumericLiteral): NodeId {
         const value = Number(numLiteral.text);
 
-        return graph.getConstVertexId(value);
+        return 0; //TODO: restore
     }
 
     function processStringLiteral(strLiteral: ts.StringLiteral): NodeId {
-        return graph.getConstVertexId(strLiteral.text);
+        return 0; //TODO: restore
     }
 
     function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression): NodeId {
@@ -593,7 +593,7 @@ export function extractIr(sourceFile: ts.SourceFile): Graph {
 
     function getPropertyAccessArguments(propertyAccessExpression: ts.PropertyAccessExpression): [NodeId, NodeId] {
         const propertyName: string = ast.getIdentifierName((propertyAccessExpression.name) as ts.Identifier);
-        const properyNodeId: NodeId = graph.getSymbolVertexId(propertyName);
+        const properyNodeId: NodeId = 0; //TODO: restore
         const objectNodeId: NodeId = processExpression(propertyAccessExpression.expression);
         return [objectNodeId, properyNodeId];
     }
