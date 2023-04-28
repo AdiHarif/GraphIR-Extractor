@@ -1,24 +1,21 @@
 
 import * as csv_writer from 'csv-writer'
 
-import { Edge, Graph } from '../graph'
-import { Vertex } from '../vertex'
+import * as ir from 'graphir'
 
-async function exportVertices(vertices: Array<Vertex>, dir: string) {
-    const path = `${dir}/vertices.facts`
-    const writer = csv_writer.createArrayCsvWriter({path})
-    return writer.writeRecords(vertices.map(v => [ v.id, v.kind, v.getLabel() ]))
-}
+export async function exportIrToRelations(graph: ir.Graph, dir: string) {
+    const promises: Array<Promise<void>> = [];
 
-async function exportEdges(edges: Array<Edge>, dir: string) {
-    const path = `${dir}/edges.facts`
-    const writer = csv_writer.createArrayCsvWriter({path})
-    return writer.writeRecords(edges.map(Object.values))
-}
+    const verticesPath = `${dir}/vertices.facts`
+    const verticesWriter = csv_writer.createArrayCsvWriter({path: verticesPath})
+    const edgesPath = `${dir}/edges.facts`
+    const edgesWriter = csv_writer.createArrayCsvWriter({path: edgesPath})
 
-export async function exportIrToRelations(graph: Graph, dir: string) {
-    await Promise.all([
-        exportVertices(Array.from(graph.getAllVertices().values()), dir),
-        exportEdges(graph.getAllEdges(), dir)
-    ]);
+    graph.vertices.forEach(v => {
+        promises.push(verticesWriter.writeRecords(graph.vertices.map(v => [ v.id, v.kind ])));
+        promises.push(edgesWriter.writeRecords(v.edges.map(e=> [ e.source.id, e.target.id, e.label, e.category ])));
+    })
+
+
+    await Promise.all(promises);
 }

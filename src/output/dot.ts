@@ -2,37 +2,48 @@
 import * as fs from 'fs/promises'
 import * as gviz from 'ts-graphviz'
 
-import { EdgeKind, Graph } from '../graph'
-import { VertexKind } from '../vertex'
+import * as ir from 'graphir'
 
-function irToModel(graph: Graph): gviz.Digraph {
+const vertexCategoryToShape = new Map<ir.VertexCategory, string>([
+    [ ir.VertexCategory.Control, 'diamond' ],
+    [ ir.VertexCategory.Data, 'rectangle' ],
+    [ ir.VertexCategory.Compound, 'mdiamond' ],
+]);
+
+const edgeCategoryToShape = new Map<ir.EdgeCategory, string>([
+    [ ir.EdgeCategory.Control, 'normal' ],
+    [ ir.EdgeCategory.Data, 'onormal' ],
+    [ ir.EdgeCategory.Association, 'open' ],
+]);
+
+function irToModel(graph: ir.Graph): gviz.Digraph {
     const digraph = new gviz.Digraph()
 
-    graph.getAllVertices().forEach(v => {
+    graph.vertices.forEach((v, id) => {
         digraph.createNode(
-            String(v.id),
+            String(id),
             {
-                label: v.getLabel(),
-                shape: v.kind == VertexKind.Control ? 'diamond' : 'rectangle'
+                label: `${id} | ${v.kind}`,
+                shape: vertexCategoryToShape[v.category]
             }
-        )
+        );
+
+        v.edges.forEach(e => {
+            digraph.createEdge(
+                [ String(e.source.id), String(e.target.id) ],
+                {
+                    label: e.label,
+                    arrowhead: edgeCategoryToShape[e.category],
+                    style: e.category == ir.EdgeCategory.Association ? 'dashed' : undefined,
+                }
+            )
+        });
     })
 
-    graph.getAllEdges().forEach(e => {
-        digraph.createEdge(
-            [ String(e.srcId), String(e.dstId) ],
-            {
-                label: e.label,
-                arrowhead: e.type == EdgeKind.Data ? 'onormal' : undefined,
-                style: e.type == EdgeKind.Association ? 'dashed' : undefined,
-                dir: e.type == EdgeKind.Association ? 'none' : undefined,
-            }
-        )
-    })
     return digraph
 }
 
-export function exportIrToDot(graph: Graph, outDir: string) {
+export function exportIrToDot(graph: ir.Graph, outDir: string) {
     const outString: string =  gviz.toDot(irToModel(graph))
     fs.writeFile(`${outDir}/graph.dot`, outString);
 }
