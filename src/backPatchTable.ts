@@ -1,19 +1,24 @@
 
-import { Vertex } from './vertex'
-import { EdgeKind } from './graph'
+import assert from 'assert'
 
+import * as ir from 'graphir'
+import { SymbolTable } from './symbolTable';
 
-interface BackPatchEntry {
-    vertexId: Vertex
-    sourceIdentifier: string,
-    edgeKind: EdgeKind,
-    edgeLabel: string
-}
+export class BackpatchTable extends Array<ir.SymbolVertex> {
+    public backpatch(symbolTable: SymbolTable): void {
+        this.forEach((entry) => {
+            const variableName = entry.name;
+            assert(variableName !== undefined);
+            const value = symbolTable.get(variableName);
+            if (value !== undefined) {
+                entry.inEdges.forEach((edge) => {
+                    edge.target = value;
+                });
+            }
+        })
+    }
 
-export class BackPatchTable extends Array<BackPatchEntry> {
-    public extend(other: BackPatchTable): void {
-        for (const entry of other) {
-            this.push(entry)
-        }
+    public extend(other: BackpatchTable): void {
+        this.push(...other)
     }
 }
