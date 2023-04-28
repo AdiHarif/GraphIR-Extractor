@@ -10,8 +10,8 @@ export abstract class GeneratedSemantics {
     protected readonly bpTable: BackpatchTable = new BackpatchTable()
     protected readonly vertexList: Array<ir.Vertex> = []
     protected readonly symbolTable: SymbolTable = new SymbolTable()
-    protected firstControl?: ir.Vertex
-    protected lastControl?: ir.Vertex
+    protected firstControl?: ir.ControlVertex
+    protected lastControl?: ir.ControlVertex
 
     public concatSemantics(other: GeneratedSemantics): void {
         other.bpTable.backpatch(this.symbolTable)
@@ -31,22 +31,23 @@ export abstract class GeneratedSemantics {
         }
     }
 
-    public setLastControl(vertex: ir.Vertex): void {
+    public setLastControl(vertex: ir.ControlVertex): void {
         if (!this.firstControl) {
             this.firstControl = vertex
         }
         this.lastControl = vertex
     }
 
-    public getFirstControl(): ir.Vertex | undefined {
+    public getFirstControl(): ir.ControlVertex | undefined {
         return this.firstControl
     }
 
-    public getLastControl(): ir.Vertex | undefined {
+    public getLastControl(): ir.ControlVertex | undefined {
         return this.lastControl
     }
 
-    public concatControlVertex(vertex: ir.Vertex): void {
+    public concatControlVertex(vertex: ir.ControlVertex): void {
+        assert(vertex instanceof ir.Vertex)
         this.vertexList.push(vertex)
         if (!this.firstControl) {
             assert(!this.lastControl)
@@ -192,6 +193,7 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
     }
 
     public createGraph(): ir.Graph {
+        assert(this.firstControl instanceof ir.StartVertex)
         return new ir.Graph(this.vertexList, this.firstControl ,this.subgraphs)
     }
 }
