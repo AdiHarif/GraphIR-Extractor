@@ -10,10 +10,10 @@ const vertexCategoryToShape = new Map<ir.VertexCategory, string>([
     [ ir.VertexCategory.Compound, 'mdiamond' ],
 ]);
 
-const edgeCategoryToShape = new Map<ir.EdgeCategory, string>([
+const edgeCategoryToShape = new Map<ir.EdgeCategory, gviz.ArrowType>([
     [ ir.EdgeCategory.Control, 'normal' ],
     [ ir.EdgeCategory.Data, 'onormal' ],
-    [ ir.EdgeCategory.Association, 'open' ],
+    [ ir.EdgeCategory.Association, 'vee' ],
 ]);
 
 function irToModel(graph: ir.Graph): gviz.Digraph {
@@ -24,7 +24,7 @@ function irToModel(graph: ir.Graph): gviz.Digraph {
             String(id),
             {
                 label: `${id} | ${v.kind}`,
-                shape: vertexCategoryToShape[v.category]
+                shape: vertexCategoryToShape.get(v.category)
             }
         );
 
@@ -33,7 +33,7 @@ function irToModel(graph: ir.Graph): gviz.Digraph {
                 [ String(e.source.id), String(e.target.id) ],
                 {
                     label: e.label,
-                    arrowhead: edgeCategoryToShape[e.category],
+                    arrowhead: edgeCategoryToShape.get(e.category),
                     style: e.category == ir.EdgeCategory.Association ? 'dashed' : undefined,
                 }
             )
