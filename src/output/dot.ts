@@ -23,7 +23,7 @@ function irToModel(graph: ir.Graph): gviz.Digraph {
         digraph.createNode(
             String(id),
             {
-                label: `${id} | ${v.kind}`,
+                label: `${id} | ${v.label}`,
                 shape: vertexCategoryToShape.get(v.category)
             }
         );

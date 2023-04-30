@@ -12,8 +12,8 @@ export async function exportIrToRelations(graph: ir.Graph, dir: string) {
     const edgesWriter = csv_writer.createArrayCsvWriter({path: edgesPath})
 
     graph.vertices.forEach(v => {
-        promises.push(verticesWriter.writeRecords(graph.vertices.map(v => [ v.id, v.kind ])));
-        promises.push(edgesWriter.writeRecords(v.edges.map(e=> [ e.source.id, e.target.id, e.label, e.category ])));
+        promises.push(verticesWriter.writeRecords(graph.vertices.map(v => [ v.id, v.kind, v.category, v.label ])));
+        promises.push(edgesWriter.writeRecords(v.edges.map(e=> [ e.source.id, e.target.id, e.category, e.label ])));
     })
 
 
