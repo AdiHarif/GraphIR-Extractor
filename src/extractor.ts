@@ -466,7 +466,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
         const semantics = processExpression(binExpression.left)
         const valueSemantics = processExpression(binExpression.right)
-        semantics.concatSemantics(semantics)
+        semantics.concatSemantics(valueSemantics)
 
         if (binaryOperation == BinaryOperation.Assign) {
             semantics.storeValue(valueSemantics.getValue())
@@ -482,7 +482,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
                 semantics.addBackpatchEntry(new ir.SymbolVertex(leftValue));
             }
 
-            const rightValue = semantics.getValue();
+            const rightValue = valueSemantics.getValue();
             if (typeof rightValue !== 'string') {
                 opVertex.right = rightValue;
             }
