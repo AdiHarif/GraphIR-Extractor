@@ -29,6 +29,8 @@ export abstract class GeneratedSemantics {
             this.lastControl.next = other.firstControl;
             this.lastControl = other.lastControl
         }
+
+        this.vertexList.push(...other.vertexList);
     }
 
     public setLastControl(vertex: ir.ControlVertex): void {
