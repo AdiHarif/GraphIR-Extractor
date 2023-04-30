@@ -13,10 +13,13 @@ import { GeneratedExpressionSemantics, GeneratedStatementSemantics } from "./sem
 export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     const semantics = new GeneratedStatementSemantics()
+    semantics.concatControlVertex(new ir.StartVertex());
+
     sourceFile.statements.forEach(statement => {
         const statementSemantics = processStatement(statement)
         semantics.concatSemantics(statementSemantics)
     })
+    semantics.concatControlVertex(new ir.ReturnVertex());
 
     return semantics.createGraph();
 
@@ -196,7 +199,8 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         })
 
         const constructorName: string = className + "::constructor"
-        const constructorVertex = new ir.SymbolVertex(constructorName, newVertex);
+        const constructorVertex = new ir.SymbolVertex(constructorName);
+        //TODO: add constructor call
         semantics.addDataVertex(constructorVertex);
         semantics.setLastControl(newVertex)
         return semantics
