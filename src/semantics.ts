@@ -123,7 +123,10 @@ export class GeneratedExpressionSemantics extends GeneratedSemantics {
     }
 
     public storeValue(location: ExpressionValueLocation): void {
-        //TODO; review this function
+        if (typeof this.valueLocation === 'string') {
+            this.symbolTable.set(this.valueLocation, location);
+            return;
+        }
         assert(this.parentInfo)
         assert(!this.valueLocation)
         this.valueLocation = location
