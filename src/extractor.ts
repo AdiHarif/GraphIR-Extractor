@@ -53,6 +53,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.WhileStatement:
                 semantics = processWhileStatement(statement as ts.WhileStatement)
                 break
+            case ts.SyntaxKind.Block:
+                semantics = processBlock(statement as ts.Block);
+                break;
             default:
                 throw new Error(`${ts.SyntaxKind[statement.kind]} is not supported`)
         }
