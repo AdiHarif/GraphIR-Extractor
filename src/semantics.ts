@@ -9,7 +9,7 @@ import { BackpatchTable } from './backPatchTable';
 export abstract class GeneratedSemantics {
     protected readonly bpTable: BackpatchTable = new BackpatchTable()
     protected readonly vertexList: Array<ir.Vertex> = []
-    protected readonly symbolTable: SymbolTable = new SymbolTable()
+    public readonly symbolTable: SymbolTable = new SymbolTable()
     protected firstControl?: ir.ControlVertex
     protected lastControl?: ir.ControlVertex
 
@@ -38,6 +38,7 @@ export abstract class GeneratedSemantics {
             this.firstControl = vertex
         }
         this.lastControl = vertex
+        this.vertexList.push(vertex);
     }
 
     public getFirstControl(): ir.ControlVertex | undefined {
@@ -185,7 +186,81 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         throw new Error("Method not implemented.")
     }
     static createIfSemantics(condSemantics: GeneratedExpressionSemantics, thenSemantics: GeneratedStatementSemantics, elseSemantics: GeneratedStatementSemantics): GeneratedStatementSemantics {
-        throw new Error("Method not implemented.")
+        const semantics = new GeneratedStatementSemantics();
+        semantics.concatSemantics(condSemantics);
+
+        if (!thenSemantics.lastControl) {
+            assert(!thenSemantics.firstControl);
+            thenSemantics.concatControlVertex(new ir.PassVertex());
+        }
+        if (!elseSemantics.lastControl) {
+            assert(!elseSemantics.firstControl);
+            elseSemantics.concatControlVertex(new ir.PassVertex());
+        }
+
+        const branchVertex = new ir.BranchVertex(
+            condSemantics.getValue() as ir.DataVertex,
+            thenSemantics.getFirstControl() as ir.ControlVertex,
+            elseSemantics.getFirstControl() as ir.ControlVertex
+        );
+
+        semantics.concatControlVertex(branchVertex);
+
+        const mergeVertex = new ir.MergeVertex();
+
+        thenSemantics.bpTable.backpatch(semantics.symbolTable);
+        elseSemantics.bpTable.backpatch(semantics.symbolTable);
+
+
+        semantics.vertexList.push(...thenSemantics.vertexList);
+        semantics.vertexList.push(...elseSemantics.vertexList);
+
+
+        thenSemantics.symbolTable.forEach((value, key) => {
+            let altValue = elseSemantics.symbolTable.get(key);
+            if (!altValue) {
+                altValue = semantics.symbolTable.get(key);
+            }
+            if (altValue) {
+                const phiVertex = new ir.PhiVertex(
+                    mergeVertex,
+                    [
+                        { value: value as ir.DataVertex, srcBranch: thenSemantics.lastControl },
+                        { value: altValue as ir.DataVertex, srcBranch: elseSemantics.lastControl },
+                    ]);
+                semantics.symbolTable.set(key, phiVertex);
+                semantics.addDataVertex(phiVertex);
+            }
+            else {
+                semantics.symbolTable.set(key, value);
+            }
+        });
+
+        elseSemantics.symbolTable.forEach((value, key) => {
+            if (!thenSemantics.symbolTable.has(key)) {
+                if (semantics.symbolTable.has(key)) {
+                    const altValue = semantics.symbolTable.get(key);
+                    //TODO: support backpatch for phi vertices.
+                    const phiVertex = new ir.PhiVertex(
+                        mergeVertex,
+                        [
+                            { value: value as ir.DataVertex, srcBranch: elseSemantics.lastControl },
+                            { value: altValue as ir.DataVertex, srcBranch: thenSemantics.lastControl }
+                        ]);
+                    semantics.symbolTable.set(key, phiVertex);
+                    semantics.addDataVertex(phiVertex);
+                }
+                else {
+                    semantics.symbolTable.set(key, value);
+                }
+            }
+        });
+
+
+        (thenSemantics.lastControl as ir.NonTerminalControlVertex).next = mergeVertex;
+        (elseSemantics.lastControl as ir.NonTerminalControlVertex).next = mergeVertex;
+        semantics.setLastControl(mergeVertex);
+        return semantics;
     }
     private retList: Array<ir.Vertex> = new Array<ir.Vertex>()
 
