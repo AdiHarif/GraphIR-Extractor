@@ -13,7 +13,7 @@ export async function exportIrToRelations(graph: ir.Graph, dir: string) {
 
     graph.vertices.forEach(v => {
         promises.push(verticesWriter.writeRecords(graph.vertices.map(v => [ v.id, v.kind, v.category, v.label ])));
-        promises.push(edgesWriter.writeRecords(v.edges.map(e=> [ e.source.id, e.target.id, e.category, e.label ])));
+        promises.push(edgesWriter.writeRecords(v.outEdges.map(e=> [ e.source.id, e.target.id, e.category, e.label ])));
     })
 
 

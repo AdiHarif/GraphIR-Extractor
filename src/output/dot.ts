@@ -28,7 +28,7 @@ function irToModel(graph: ir.Graph): gviz.Digraph {
             }
         );
 
-        v.edges.forEach(e => {
+        v.outEdges.forEach(e => {
             digraph.createEdge(
                 [ String(e.source.id), String(e.target.id) ],
                 {
