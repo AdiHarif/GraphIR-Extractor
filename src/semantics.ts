@@ -67,7 +67,7 @@ export abstract class GeneratedSemantics {
         this.vertexList.push(vertex)
     }
 
-    public setVariable(identifier: string, value: ExpressionValueLocation): void {
+    public setVariable(identifier: string, value: ir.DataVertex): void {
         this.symbolTable.set(identifier, value)
     }
 
@@ -76,15 +76,13 @@ export abstract class GeneratedSemantics {
     }
 }
 
-type ExpressionValueLocation = ir.DataVertex | string
-
 type ParentInfo = {
-    object: ExpressionValueLocation,
-    element: ExpressionValueLocation
+    object: ir.DataVertex,
+    element: ir.DataVertex
 }
 
 export class GeneratedExpressionSemantics extends GeneratedSemantics {
-    private valueLocation?: ExpressionValueLocation
+    private valueLocation?: ir.DataVertex;
     private parentInfo?: ParentInfo
 
     public isValuePresent(): boolean {
@@ -92,70 +90,42 @@ export class GeneratedExpressionSemantics extends GeneratedSemantics {
     }
 
     public concatSemantics(other: GeneratedExpressionSemantics): void {
-        super.concatSemantics(other)
-        if (!other.isValuePresent() && this.symbolTable.has(other.valueLocation as string)) {
-            other.valueLocation = this.symbolTable.get(other.valueLocation as string)
+        super.concatSemantics(other);
+        if (other.valueLocation instanceof ir.SymbolVertex && this.symbolTable.has(other.valueLocation.name)) {
+            other.valueLocation = this.symbolTable.get(other.valueLocation.name);
         }
     }
 
-    public getValue(): ir.DataVertex | string {
-        //TODO; review this function
-        if (this.valueLocation) {
-            return this.valueLocation
-        }
-        else {
+    public getValue(): ir.DataVertex {
+        if (!this.valueLocation) {
             assert(this.parentInfo)
             const loadVertex = new ir.LoadVertex();
             this.concatControlVertex(loadVertex);
             this.valueLocation = loadVertex
-            if (typeof this.parentInfo.object === 'string') {
-                this.bpTable.push(new ir.SymbolVertex(this.parentInfo.object));
-            }
-            else {
-                loadVertex.object = this.parentInfo.object;
-            }
-            if (typeof this.parentInfo.element === 'string') {
-                this.bpTable.push(new ir.SymbolVertex(this.parentInfo.element));
-            }
-            else {
-                loadVertex.property = this.parentInfo.element;
-            }
+            loadVertex.object = this.parentInfo.object;
+            loadVertex.property = this.parentInfo.element;
         }
+        return this.valueLocation
     }
 
-    public storeValue(location: ExpressionValueLocation): void {
-        if (typeof this.valueLocation === 'string') {
-            this.symbolTable.set(this.valueLocation, location);
+    public storeValue(newValue: ir.DataVertex): void {
+        if (this.valueLocation instanceof ir.SymbolVertex) {
+            this.symbolTable.set(this.valueLocation.name, newValue);
             return;
         }
         assert(this.parentInfo)
         assert(!this.valueLocation)
-        this.valueLocation = location
+        this.valueLocation = newValue;
         const storeVertex = new ir.StoreVertex()
         this.concatControlVertex(storeVertex)
 
-        if (typeof this.parentInfo.object === 'string') {
-            this.bpTable.push(new ir.SymbolVertex(this.parentInfo.object))
-        }
-        else {
-            storeVertex.object = this.parentInfo.object
-        }
-        if (typeof this.parentInfo.element === 'string') {
-            this.bpTable.push(new ir.SymbolVertex(this.parentInfo.element))
-        }
-        else {
-            storeVertex.property = this.parentInfo.element
-        }
-        if (typeof location === 'string') {
-            this.bpTable.push(new ir.SymbolVertex(location))
-        }
-        else {
-            storeVertex.value = location
-        }
+        storeVertex.object = this.parentInfo.object
+        storeVertex.property = this.parentInfo.element
+        storeVertex.value = newValue;
     }
 
-    public setValue(location: ExpressionValueLocation): void {
-        this.valueLocation = location
+    public setValue(newValue: ir.DataVertex): void {
+        this.valueLocation = newValue
     }
 
     public accessValueProperty(property: string): void {

@@ -410,7 +410,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processThisNode(): GeneratedExpressionSemantics {
         const semantics = new GeneratedExpressionSemantics()
-        semantics.setValue('this')
+        semantics.setValue(new ir.SymbolVertex('this'));
         return semantics
     }
 
@@ -522,7 +522,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processIdentifierExpression(identifierExpression: ts.Identifier): GeneratedExpressionSemantics {
         const identifier: string = ast.getIdentifierName(identifierExpression)
         const semantics = new GeneratedExpressionSemantics()
-        semantics.setValue(identifier)
+        semantics.setValue(new ir.SymbolVertex(identifier));
         return semantics
     }
 }
