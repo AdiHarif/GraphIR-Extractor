@@ -76,11 +76,16 @@ export abstract class GeneratedSemantics {
     }
 
     public addDataVertex(vertex: ir.Vertex): void {
-        this.vertexList.push(vertex)
+        if (!this.vertexList.includes(vertex)) {
+            this.vertexList.push(vertex);
+        }
     }
 
     public setVariable(identifier: string, value: ir.DataVertex): void {
-        this.symbolTable.set(identifier, value)
+        this.symbolTable.set(identifier, value);
+        if (!this.vertexList.includes(value)){
+            this.vertexList.push(value);
+        }
     }
 }
 
