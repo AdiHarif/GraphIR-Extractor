@@ -6,7 +6,7 @@ import { SymbolTable } from './symbolTable';
 
 
 export abstract class GeneratedSemantics {
-    protected readonly vertexList: Array<ir.Vertex> = []
+    protected vertexList: Array<ir.Vertex> = []
     public readonly symbolTable: SymbolTable = new SymbolTable()
     protected firstControl?: ir.ControlVertex
     protected lastControl?: ir.ControlVertex
@@ -23,7 +23,7 @@ export abstract class GeneratedSemantics {
             }
         });
 
-        this.vertexList.filter(value => !(value instanceof ir.SymbolVertex) || !(value.name in toRemove));
+        this.vertexList = this.vertexList.filter(value => !(value instanceof ir.SymbolVertex) || !(value.name in toRemove));
     }
 
     public concatSemantics(other: GeneratedSemantics): void {
@@ -257,6 +257,8 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
 
     public createGraph(): ir.Graph {
         assert(this.firstControl instanceof ir.StartVertex)
+
+        this.vertexList = this.vertexList.filter((vertex) => !(vertex instanceof ir.SymbolVertex) || vertex.inEdges.length > 0);
         return new ir.Graph(this.vertexList, this.firstControl ,this.subgraphs)
     }
 }
