@@ -3,20 +3,32 @@ import assert from 'assert'
 
 import * as ir from 'graphir'
 import { SymbolTable } from './symbolTable';
-import { BackpatchTable } from './backPatchTable';
 
 
 export abstract class GeneratedSemantics {
-    protected readonly bpTable: BackpatchTable = new BackpatchTable()
     protected readonly vertexList: Array<ir.Vertex> = []
     public readonly symbolTable: SymbolTable = new SymbolTable()
     protected firstControl?: ir.ControlVertex
     protected lastControl?: ir.ControlVertex
 
+    public backpatch(srcTable: SymbolTable) {
+        const toRemove: Array<string> = [];
+        this.symbolTable.forEach((value, identifier) => {
+            if (value instanceof ir.SymbolVertex && srcTable.has(value.name)) {
+                value.inEdges.forEach(e => {
+                    e.target = srcTable.get(value.name);
+                });
+                this.symbolTable.set(identifier, srcTable.get(value.name));
+                toRemove.push(value.name);
+            }
+        });
+
+        this.vertexList.filter(value => !(value instanceof ir.SymbolVertex) || !(value.name in toRemove));
+    }
+
     public concatSemantics(other: GeneratedSemantics): void {
-        other.bpTable.backpatch(this.symbolTable)
+        other.backpatch(this.symbolTable)
         this.symbolTable.override(other.symbolTable)
-        this.bpTable.extend(other.bpTable)
 
         if (!this.firstControl) {
             assert(!this.lastControl)
@@ -69,10 +81,6 @@ export abstract class GeneratedSemantics {
 
     public setVariable(identifier: string, value: ir.DataVertex): void {
         this.symbolTable.set(identifier, value)
-    }
-
-    public addBackpatchEntry(symbol: ir.SymbolVertex): void {
-        this.bpTable.push(symbol);
     }
 }
 
@@ -178,8 +186,8 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
 
         const mergeVertex = new ir.MergeVertex();
 
-        thenSemantics.bpTable.backpatch(semantics.symbolTable);
-        elseSemantics.bpTable.backpatch(semantics.symbolTable);
+        thenSemantics.backpatch(semantics.symbolTable);
+        elseSemantics.backpatch(semantics.symbolTable);
 
 
         semantics.vertexList.push(...thenSemantics.vertexList);

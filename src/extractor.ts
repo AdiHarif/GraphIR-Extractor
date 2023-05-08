@@ -452,14 +452,8 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics: GeneratedExpressionSemantics = processExpression(prefixUnaryExpression.operand)
         const operationVertex = new ir.PrefixUnaryOperationVertex(unaryOperation);
         const value = semantics.getValue();
-        if (typeof value !== 'string') {
-            operationVertex.operand = value;
-        }
-        else {
-            semantics.addBackpatchEntry(new ir.SymbolVertex(value));
-        }
+        operationVertex.operand = value;
         semantics.addDataVertex(operationVertex)
-
         semantics.setValue(operationVertex)
         return semantics;
     }
@@ -478,23 +472,13 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             //const opVertex = new ir.BinaryOperationVertex(binaryOperation, semantics.getValue(), valueSemantics.getValue());
             const opVertex = new ir.BinaryOperationVertex(binaryOperation);
             const leftValue = semantics.getValue();
-            if (typeof leftValue !== 'string') {
-                opVertex.left = leftValue;
-            }
-            else {
-                semantics.addBackpatchEntry(new ir.SymbolVertex(leftValue));
-            }
-
+            opVertex.left = leftValue;
             const rightValue = valueSemantics.getValue();
-            if (typeof rightValue !== 'string') {
-                opVertex.right = rightValue;
-            }
-            else {
-                semantics.addBackpatchEntry(new ir.SymbolVertex(rightValue));
-            }
+            opVertex.right = rightValue;
 
-            semantics.addDataVertex(opVertex)
-            semantics.setValue(opVertex)
+            semantics.addDataVertex(opVertex);
+            semantics.addDataVertex(rightValue);
+            semantics.setValue(opVertex);
         }
 
         return semantics
@@ -521,8 +505,10 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     //for cases we use the identifier's value
     function processIdentifierExpression(identifierExpression: ts.Identifier): GeneratedExpressionSemantics {
         const identifier: string = ast.getIdentifierName(identifierExpression)
-        const semantics = new GeneratedExpressionSemantics()
-        semantics.setValue(new ir.SymbolVertex(identifier));
+        const semantics = new GeneratedExpressionSemantics();
+        const vertex = new ir.SymbolVertex(identifier);
+        semantics.setVariable(identifier, vertex);
+        semantics.setValue(vertex);
         return semantics
     }
 }
