@@ -11,4 +11,12 @@ export class SymbolTable extends Map<string, ir.DataVertex> {
             this.set(identifier, vertex)
         })
     }
+
+    public clone(): SymbolTable {
+        const newTable = new SymbolTable()
+        this.forEach((vertex, identifier) => {
+            newTable.set(identifier, vertex)
+        })
+        return newTable
+    }
 }
