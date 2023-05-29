@@ -11,23 +11,13 @@ export abstract class GeneratedSemantics {
     protected firstControl?: ir.ControlVertex
     protected lastControl?: ir.ControlVertex
 
-    public backpatch(srcTable: SymbolTable) {
-        const toRemove: Array<string> = [];
-        this.symbolTable.forEach((value, identifier) => {
-            if (value instanceof ir.SymbolVertex && srcTable.has(value.name)) {
-                value.inEdges.forEach(e => {
-                    e.target = srcTable.get(value.name);
-                });
-                this.symbolTable.set(identifier, srcTable.get(value.name));
-                toRemove.push(value.name);
-            }
-        });
-
-        this.vertexList = this.vertexList.filter(value => !(value instanceof ir.SymbolVertex) || !(value.name in toRemove));
+    constructor(symbolTable?: SymbolTable) {
+        if (symbolTable) {
+            this.symbolTable = symbolTable.clone();
+        }
     }
 
     public concatSemantics(other: GeneratedSemantics): void {
-        other.backpatch(this.symbolTable)
         this.symbolTable.override(other.symbolTable)
 
         if (!this.firstControl) {
@@ -190,10 +180,6 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         semantics.concatControlVertex(branchVertex);
 
         const mergeVertex = new ir.MergeVertex();
-
-        thenSemantics.backpatch(semantics.symbolTable);
-        elseSemantics.backpatch(semantics.symbolTable);
-
 
         semantics.vertexList.push(...thenSemantics.vertexList);
         semantics.vertexList.push(...elseSemantics.vertexList);
