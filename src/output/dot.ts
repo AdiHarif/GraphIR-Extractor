@@ -7,7 +7,7 @@ import * as ir from 'graphir'
 const vertexCategoryToShape = new Map<ir.VertexCategory, string>([
     [ ir.VertexCategory.Control, 'diamond' ],
     [ ir.VertexCategory.Data, 'rectangle' ],
-    [ ir.VertexCategory.Compound, 'mdiamond' ],
+    [ ir.VertexCategory.Compound, 'Mdiamond' ],
 ]);
 
 const edgeCategoryToShape = new Map<ir.EdgeCategory, gviz.ArrowType>([
