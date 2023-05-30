@@ -229,11 +229,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (retStatement.expression !== undefined) {
             const expressionSemantics: GeneratedExpressionSemantics = processExpression(retStatement.expression, symbolTable);
             semantics.concatSemantics(expressionSemantics)
-            semantics.concatControlVertex(returnVertex)
-            const value = expressionSemantics.value;
-            if (typeof value !== 'string'){
-                returnVertex.value = value;
-            }
+            returnVertex.value = expressionSemantics.value;
         }
         semantics.concatControlVertex(returnVertex)
         return semantics
