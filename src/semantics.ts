@@ -32,7 +32,11 @@ export abstract class GeneratedSemantics {
             this.lastControl = other.lastControl
         }
 
-        this.vertexList.push(...other.vertexList);
+        other.vertexList.forEach((vertex) => {
+            if (this.vertexList.indexOf(vertex) === -1) {
+                this.vertexList.push(vertex);
+            }
+        });
     }
 
     public setLastControl(vertex: ir.ControlVertex): void {
