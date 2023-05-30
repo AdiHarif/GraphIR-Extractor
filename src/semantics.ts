@@ -80,7 +80,15 @@ export abstract class GeneratedSemantics {
 }
 
 export class GeneratedExpressionSemantics extends GeneratedSemantics {
-    public value: ir.DataVertex;
+    private _value: ir.DataVertex;
+
+    public get value(): ir.DataVertex {
+        return this._value;
+    }
+
+    public set value(value: ir.DataVertex) {
+        this._value = value;
+    }
 
     public concatSemantics(other: GeneratedExpressionSemantics): void {
         super.concatSemantics(other);
