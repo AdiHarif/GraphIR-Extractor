@@ -79,75 +79,14 @@ export abstract class GeneratedSemantics {
     }
 }
 
-type ParentInfo = {
-    object: ir.DataVertex,
-    element: ir.DataVertex
-}
-
 export class GeneratedExpressionSemantics extends GeneratedSemantics {
-    private valueLocation?: ir.DataVertex;
-    private parentInfo?: ParentInfo
-
-    public isValuePresent(): boolean {
-        return (this.valueLocation !== undefined);
-    }
+    public value: ir.DataVertex;
 
     public concatSemantics(other: GeneratedExpressionSemantics): void {
         super.concatSemantics(other);
-        if (other.valueLocation instanceof ir.SymbolVertex && this.symbolTable.has(other.valueLocation.name)) {
-            other.valueLocation = this.symbolTable.get(other.valueLocation.name);
+        if (other.value instanceof ir.SymbolVertex && this.symbolTable.has(other.value.name)) {
+            other.value = this.symbolTable.get(other.value.name);
         }
-    }
-
-    public getValue(): ir.DataVertex {
-        if (!this.valueLocation) {
-            assert(this.parentInfo)
-            const loadVertex = new ir.LoadVertex();
-            this.concatControlVertex(loadVertex);
-            this.valueLocation = loadVertex
-            loadVertex.object = this.parentInfo.object;
-            loadVertex.property = this.parentInfo.element;
-        }
-        return this.valueLocation
-    }
-
-    public storeValue(newValue: ir.DataVertex): void {
-        if (this.valueLocation instanceof ir.SymbolVertex) {
-            this.symbolTable.set(this.valueLocation.name, newValue);
-            return;
-        }
-        assert(this.parentInfo)
-        assert(!this.valueLocation)
-        this.valueLocation = newValue;
-        const storeVertex = new ir.StoreVertex()
-        this.concatControlVertex(storeVertex)
-
-        storeVertex.object = this.parentInfo.object
-        storeVertex.property = this.parentInfo.element
-        storeVertex.value = newValue;
-    }
-
-    public setValue(newValue: ir.DataVertex): void {
-        this.valueLocation = newValue
-    }
-
-    public accessValueProperty(property: string): void {
-        assert(this.valueLocation)
-        this.parentInfo = {
-            object: this.valueLocation,
-            element: new ir.LiteralVertex(property)
-        }
-        this.valueLocation = undefined
-    }
-
-    public accessValueElement(elementSemantics: GeneratedExpressionSemantics): void {
-        assert(this.valueLocation)
-        this.concatSemantics(elementSemantics)
-        this.parentInfo = {
-            object: this.valueLocation,
-            element: elementSemantics.getValue()
-        }
-        this.valueLocation = undefined
     }
 }
 
@@ -172,7 +111,7 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         }
 
         const branchVertex = new ir.BranchVertex(
-            condSemantics.getValue() as ir.DataVertex,
+            condSemantics.value,
             thenSemantics.getFirstControl() as ir.ControlVertex,
             elseSemantics.getFirstControl() as ir.ControlVertex
         );
