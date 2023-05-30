@@ -170,7 +170,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processCallExpression(callExpression: ts.CallExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics: GeneratedExpressionSemantics = processExpression(callExpression.expression, symbolTable);
-        const value = semantics.getValue();
+        const value = semantics.value;
         const callVertex = new ir.CallVertex();
         if (value instanceof ir.SymbolVertex) {
             callVertex.callee = value;
@@ -179,12 +179,12 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
         callExpression.arguments.forEach((argument) => {
             const argSemantics: GeneratedExpressionSemantics = processExpression(argument, symbolTable);
-            //callVertex.args.push(argSemantics.getValue());
+            //callVertex.args.push(argSemantics.value);
             //TODO: restore usage of args
             semantics.concatSemantics(argSemantics)
         })
 
-        semantics.setValue(callVertex)
+        semantics.value = callVertex;
         return semantics;
     }
 
@@ -193,12 +193,12 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics: GeneratedExpressionSemantics = new GeneratedExpressionSemantics(symbolTable)
         const newVertex = new ir.AllocationVertex(); //TODO: update with class name, constructor and args.
         semantics.concatControlVertex(newVertex)
-        semantics.setValue(newVertex)
+        semantics.value = newVertex;
 
         newExpression.arguments?.forEach((argument, pos) => {
             const argSemantics: GeneratedExpressionSemantics = processExpression(argument, symbolTable);
             semantics.concatSemantics(argSemantics)
-            //semantics.addEdge(new Edge(argSemantics.getValue(), newVertex, `pos: ${pos}`, EdgeKind.Data))
+            //semantics.addEdge(new Edge(argSemantics.value, newVertex, `pos: ${pos}`, EdgeKind.Data))
             //TODO: restore
         })
 
@@ -230,7 +230,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             const expressionSemantics: GeneratedExpressionSemantics = processExpression(retStatement.expression, symbolTable);
             semantics.concatSemantics(expressionSemantics)
             semantics.concatControlVertex(returnVertex)
-            const value = expressionSemantics.getValue();
+            const value = expressionSemantics.value;
             if (typeof value !== 'string'){
                 returnVertex.value = value;
             }
@@ -255,7 +255,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (varDecl.initializer) {
             const initSemantics = processExpression(varDecl.initializer as ts.Expression, semantics.symbolTable);
             semantics.concatSemantics(initSemantics)
-            semantics.setVariable(varName, initSemantics.getValue())
+            semantics.setVariable(varName, initSemantics.value)
         }
 
         return semantics
@@ -265,16 +265,16 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         let semantics: GeneratedExpressionSemantics;
         switch (expression.kind) {
             case ts.SyntaxKind.NumericLiteral:
-                semantics = processNumericLiteral(expression as ts.NumericLiteral)
+                semantics = processNumericLiteral(expression as ts.NumericLiteral, symbolTable)
                 break
             case ts.SyntaxKind.StringLiteral:
-                semantics = processStringLiteral(expression as ts.StringLiteral)
+                semantics = processStringLiteral(expression as ts.StringLiteral, symbolTable)
                 break
             case ts.SyntaxKind.TrueKeyword:
-                semantics = processTrueKeyword()
+                semantics = processTrueKeyword(symbolTable)
                 break
             case ts.SyntaxKind.FalseKeyword:
-                semantics = processFalseKeyword()
+                semantics = processFalseKeyword(symbolTable)
                 break
             case ts.SyntaxKind.PrefixUnaryExpression:
                 semantics = processPrefixUnaryExpression(expression as ts.PrefixUnaryExpression, symbolTable)
@@ -295,10 +295,10 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
                 semantics = processNewExpression(expression as ts.NewExpression, symbolTable)
                 break
             case ts.SyntaxKind.PropertyAccessExpression:
-                semantics = processPropertyAccessExpression(expression as ts.PropertyAccessExpression, symbolTable)
+                semantics = loadPropertyAccessExpression(expression as ts.PropertyAccessExpression, symbolTable)
                 break
             case ts.SyntaxKind.ElementAccessExpression:
-                semantics = processElementAccessExpression(expression as ts.ElementAccessExpression, symbolTable);
+                semantics = loadElementAccessExpression(expression as ts.ElementAccessExpression, symbolTable);
                 break
             case ts.SyntaxKind.ThisKeyword:
                 semantics = processThisNode(symbolTable);
@@ -323,7 +323,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics: GeneratedExpressionSemantics = new GeneratedExpressionSemantics(symbolTable)
         const arrayVertex = new ir.AllocationVertex('Array')
         semantics.concatControlVertex(arrayVertex)
-        semantics.setValue(arrayVertex)
+        semantics.value = arrayVertex;
 
         arrayLiteralExp.elements.forEach((element: ts.Expression, index: number) => {
 
@@ -339,7 +339,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
             // Generating element calculation flow
             const elementSemantics: GeneratedExpressionSemantics = processExpression(element, semantics.symbolTable);
-            const elementValue = elementSemantics.getValue();
+            const elementValue = elementSemantics.value;
             if (typeof elementValue !== 'string') {
                 storeVertex.value = elementValue;
             }
@@ -355,7 +355,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics: GeneratedExpressionSemantics = new GeneratedExpressionSemantics(symbolTable)
         const objectVertex = new ir.AllocationVertex('Object');
         semantics.concatControlVertex(objectVertex)
-        semantics.setValue(objectVertex)
+        semantics.value  = objectVertex;
 
         objectLiteralExp.properties.forEach((newProperty: ts.PropertyAssignment) => {
             assert(newProperty.kind == ts.SyntaxKind.PropertyAssignment, 'only PropertyAssignment object are supported as ObjectLiteralElements')
@@ -373,7 +373,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
             // Generating element calculation flow
             const initializerSemantics: GeneratedExpressionSemantics = processExpression(newProperty.initializer, semantics.symbolTable)
-            const initializerValue = initializerSemantics.getValue();
+            const initializerValue = initializerSemantics.value;
             if (typeof initializerValue !== 'string') {
                 storeVertex.value = initializerValue;
             }
@@ -411,40 +411,40 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processThisNode(symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = new GeneratedExpressionSemantics()
-        semantics.setValue(symbolTable.get('this'));
+        semantics.value = symbolTable.get('this');
         return semantics
     }
 
-    function processNumericLiteral(numLiteral: ts.NumericLiteral): GeneratedExpressionSemantics {
-        const semantics = new GeneratedExpressionSemantics()
+    function processNumericLiteral(numLiteral: ts.NumericLiteral, symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const semantics = new GeneratedExpressionSemantics(symbolTable)
         const value = Number(numLiteral.text)
         const valueVertex = new ir.LiteralVertex(value);
         semantics.addDataVertex(valueVertex);
-        semantics.setValue(valueVertex)
+        semantics.value = valueVertex
         return semantics
     }
 
-    function processStringLiteral(strLiteral: ts.StringLiteral): GeneratedExpressionSemantics {
-        const semantics = new GeneratedExpressionSemantics()
+    function processStringLiteral(strLiteral: ts.StringLiteral, symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const semantics = new GeneratedExpressionSemantics(symbolTable)
         const valueVertex = new ir.LiteralVertex(strLiteral.text);
         semantics.addDataVertex(valueVertex);
-        semantics.setValue(valueVertex)
+        semantics.value = valueVertex;
         return semantics
     }
 
-    function processTrueKeyword(): GeneratedExpressionSemantics {
-        const semantics = new GeneratedExpressionSemantics()
+    function processTrueKeyword(symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const semantics = new GeneratedExpressionSemantics(symbolTable)
         const valueVertex = new ir.LiteralVertex(true);
         semantics.addDataVertex(valueVertex)
-        semantics.setValue(valueVertex)
+        semantics.value = valueVertex
         return semantics
     }
 
-    function processFalseKeyword(): GeneratedExpressionSemantics {
-        const semantics = new GeneratedExpressionSemantics()
+    function processFalseKeyword(symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const semantics = new GeneratedExpressionSemantics(symbolTable)
         const valueVertex = new ir.LiteralVertex(false);
-        semantics.addDataVertex(valueVertex)
-        semantics.setValue(valueVertex)
+        semantics.addDataVertex(valueVertex);
+        semantics.value = valueVertex;
         return semantics
     }
 
@@ -452,50 +452,64 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const unaryOperation: UnaryOperation = syntaxKindToUnaryOperation(prefixUnaryExpression.operator)
         const semantics: GeneratedExpressionSemantics = processExpression(prefixUnaryExpression.operand, symbolTable)
         const operationVertex = new ir.PrefixUnaryOperationVertex(unaryOperation);
-        const value = semantics.getValue();
+        const value = semantics.value;
         operationVertex.operand = value;
-        semantics.addDataVertex(operationVertex)
-        semantics.setValue(operationVertex)
+        semantics.addDataVertex(operationVertex);
+        semantics.value = operationVertex;
         return semantics;
     }
 
     function processBinaryExpression(binExpression: ts.BinaryExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const binaryOperation: BinaryOperation = syntaxKindToBinaryOperation(binExpression.operatorToken.kind)
 
-        const semantics = processExpression(binExpression.left, symbolTable)
-        const valueSemantics = processExpression(binExpression.right, symbolTable)
-        semantics.concatSemantics(valueSemantics)
-
+        const semantics = processExpression(binExpression.right, symbolTable)
+        
         if (binaryOperation == BinaryOperation.Assign) {
-            semantics.storeValue(valueSemantics.getValue())
+            if (binExpression.left.kind == ts.SyntaxKind.Identifier) {
+                const identifier = ast.getIdentifierName(binExpression.left as ts.Identifier);
+                semantics.symbolTable.set(identifier, semantics.value);
+            }
+            else {
+                storePropertyAccessExpression(binExpression.left as ts.PropertyAccessExpression, semantics.value, semantics.symbolTable);
+            }
         }
         else {
-            //const opVertex = new ir.BinaryOperationVertex(binaryOperation, semantics.getValue(), valueSemantics.getValue());
+            const leftSemantics = processExpression(binExpression.left, semantics.symbolTable)
+            semantics.concatSemantics(leftSemantics);
+            //const opVertex = new ir.BinaryOperationVertex(binaryOperation, semantics.value, valueSemantics.value);
             const opVertex = new ir.BinaryOperationVertex(binaryOperation);
-            const leftValue = semantics.getValue();
+            const leftValue = leftSemantics.value;
             opVertex.left = leftValue;
-            const rightValue = valueSemantics.getValue();
+            const rightValue = semantics.value;
             opVertex.right = rightValue;
 
             semantics.addDataVertex(opVertex);
             semantics.addDataVertex(rightValue);
-            semantics.setValue(opVertex);
+            semantics.value = opVertex;
         }
 
-        return semantics
+        return semantics;
     }
 
-    function processPropertyAccessExpression(propertyAccessExpression: ts.PropertyAccessExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
+    function loadPropertyAccessExpression(propertyAccessExpression: ts.PropertyAccessExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = processExpression(propertyAccessExpression.expression, symbolTable)
         const propertyName = ast.getIdentifierName((propertyAccessExpression.name) as ts.Identifier)
-        semantics.accessValueProperty(propertyName)
+        const loadVertex = new ir.LoadVertex();
+        loadVertex.property = new ir.LiteralVertex(propertyName);
+        loadVertex.object = semantics.value;
+        semantics.concatControlVertex(loadVertex);
+        semantics.value = loadVertex;
         return semantics
     }
 
-    function processElementAccessExpression(elementAccessExpression: ts.ElementAccessExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
+    function loadElementAccessExpression(elementAccessExpression: ts.ElementAccessExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = processExpression(elementAccessExpression.expression, symbolTable)
         const argSemantics = processExpression(elementAccessExpression.argumentExpression, symbolTable)
-        semantics.accessValueElement(argSemantics)
+        const loadVertex = new ir.LoadVertex();
+        loadVertex.property = argSemantics.value;
+        loadVertex.object = semantics.value;
+        semantics.concatControlVertex(loadVertex);
+        semantics.value = loadVertex;
         return semantics
     }
 
@@ -506,7 +520,12 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processIdentifierExpression(identifierExpression: ts.Identifier, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const identifier: string = ast.getIdentifierName(identifierExpression)
         const semantics = new GeneratedExpressionSemantics(symbolTable);
-        semantics.setValue(symbolTable.get(identifier));
+        semantics.value = symbolTable.get(identifier);
+        semantics.addDataVertex(semantics.value);
         return semantics
+    }
+
+    function storePropertyAccessExpression(propertyAccessExpression: ts.PropertyAccessExpression, value: ir.Vertex, symbolTable: SymbolTable): void {
+        // TODO: implement
     }
 }
