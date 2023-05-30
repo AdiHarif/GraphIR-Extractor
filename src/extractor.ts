@@ -68,6 +68,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const funcName: string = funcDeclaration.name['escapedText'] as string;
         const startVertex = new ir.StartVertex();
         const symbolVertex = new ir.SymbolVertex(funcName, startVertex);
+        semantics.symbolTable.set(funcName ,symbolVertex);
         semantics.concatControlVertex(startVertex);
         semantics.addDataVertex(symbolVertex);
 
@@ -80,6 +81,8 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
         assert(funcDeclaration.body)
         semantics.concatSemantics(processBlock(funcDeclaration.body, semantics.symbolTable))
+        semantics.purge();
+        semantics.symbolTable.set(funcName ,symbolVertex);
         return semantics
     }
 
@@ -178,10 +181,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         semantics.concatControlVertex(callVertex);
 
         callExpression.arguments.forEach((argument) => {
-            const argSemantics: GeneratedExpressionSemantics = processExpression(argument, symbolTable);
-            //callVertex.args.push(argSemantics.value);
-            //TODO: restore usage of args
-            semantics.concatSemantics(argSemantics)
+            const argSemantics: GeneratedExpressionSemantics = processExpression(argument, semantics.symbolTable);
+            callVertex.pushArg(argSemantics.value);
+            semantics.concatSemantics(argSemantics);
         })
 
         semantics.value = callVertex;
