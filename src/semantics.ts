@@ -81,6 +81,12 @@ export abstract class GeneratedSemantics {
             this.vertexList.push(value);
         }
     }
+
+    public purge(): void {
+        this.symbolTable.clear();
+        this.firstControl = undefined;
+        this.lastControl = undefined;
+    }
 }
 
 export class GeneratedExpressionSemantics extends GeneratedSemantics {
