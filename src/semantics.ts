@@ -123,6 +123,11 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
             assert(!thenSemantics.firstControl);
             thenSemantics.concatControlVertex(new ir.PassVertex());
         }
+
+        if (!elseSemantics) {
+            elseSemantics = new GeneratedStatementSemantics();
+        }
+
         if (!elseSemantics.lastControl) {
             assert(!elseSemantics.firstControl);
             elseSemantics.concatControlVertex(new ir.PassVertex());
