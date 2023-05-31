@@ -152,7 +152,7 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
             if (!altValue) {
                 altValue = semantics.symbolTable.get(key);
             }
-            if (altValue) {
+            if (altValue && altValue !== value) {
                 const phiVertex = new ir.PhiVertex(
                     mergeVertex,
                     [
