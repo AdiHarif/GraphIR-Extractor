@@ -206,7 +206,7 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
     public createGraph(): ir.Graph {
         assert(this.firstControl instanceof ir.StartVertex)
 
-        this.vertexList = this.vertexList.filter((vertex) => !(vertex instanceof ir.SymbolVertex) || vertex.inEdges.length > 0);
+        //this.vertexList = this.vertexList.filter((vertex) => !(vertex instanceof ir.SymbolVertex) || vertex.inEdges.length > 0);
         return new ir.Graph(this.vertexList, this.firstControl ,this.subgraphs)
     }
 }
