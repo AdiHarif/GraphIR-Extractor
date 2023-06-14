@@ -213,9 +213,41 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     }
 
     function processWhileStatement(whileStatement: ts.WhileStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
-        const condSemantics = processExpression(whileStatement.expression, symbolTable);
+        const semantics = new GeneratedStatementSemantics(symbolTable);
+        const pass = new ir.PassVertex();
+        const merge = new ir.MergeVertex();
+        semantics.concatControlVertex(pass);
+        semantics.concatControlVertex(merge);
+        const branch = new ir.BranchVertex();
+        semantics.concatControlVertex(branch);
+        merge.next = branch;
+        const assignedVariables = ast.getAssignedVariables(whileStatement);
+        const phiMap: Map<string, ir.PhiVertex> = new Map();
+        assignedVariables.forEach((variable) => {
+            const phi = new ir.PhiVertex(merge, [{ value: semantics.symbolTable.get(variable), srcBranch: pass }]);
+            phiMap.set(variable, phi);
+            semantics.symbolTable.set(variable, phi);
+        });
+        const condSemantics = processExpression(whileStatement.expression, semantics.symbolTable);
+        semantics.concatSemantics(condSemantics);
+        branch.condition = condSemantics.value;
         const bodySemantics = processStatement(whileStatement.statement, condSemantics.symbolTable);
-        return GeneratedStatementSemantics.createLoopSemantics(condSemantics, bodySemantics)
+        const bodyEnd = new ir.PassVertex();
+        bodySemantics.concatControlVertex(bodyEnd);
+        phiMap.forEach((phi, variable) => {
+            const value = bodySemantics.symbolTable.get(variable);
+            phi.addOperand({ value: value, srcBranch: bodyEnd });
+            bodySemantics.symbolTable.set(variable, phi);
+        });
+        const truePass = new ir.PassVertex();
+        branch.trueNext = truePass;
+        semantics.setLastControl(truePass);
+        semantics.concatSemantics(bodySemantics);
+        bodyEnd.next = merge;
+        const falsePass = new ir.PassVertex();
+        branch.falseNext = falsePass;
+        semantics.setLastControl(falsePass);
+        return semantics;
     }
 
     function processIfStatement(ifStatement: ts.IfStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
