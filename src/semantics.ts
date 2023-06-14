@@ -66,6 +66,7 @@ export abstract class GeneratedSemantics {
             assert(this.lastControl)
             assert(this.lastControl instanceof ir.NonTerminalControlVertex)
             this.lastControl.next = vertex
+            this.lastControl = vertex
         }
     }
 
