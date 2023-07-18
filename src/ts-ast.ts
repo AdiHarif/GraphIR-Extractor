@@ -8,7 +8,8 @@ export function getIdentifierName(name: ts.Identifier | ts.PropertyName): string
 }
 
 export function parseFile(fileName: string): ts.SourceFile {
-    const program = ts.createProgram([fileName], {});
+    const host = ts.createCompilerHost({}, true);
+    const program = ts.createProgram([fileName], {}, host);
     const sourceFiles = program.getSourceFiles().filter((sourceFile: ts.SourceFile) => !sourceFile.isDeclarationFile);
     assert(sourceFiles.length == 1)
     return sourceFiles[0]
