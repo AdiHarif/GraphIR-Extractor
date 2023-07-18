@@ -24,3 +24,4 @@ if (require.main === module) {
 }
 
 export * from './output/dot';
+export * from './output/relations';
