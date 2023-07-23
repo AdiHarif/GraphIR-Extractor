@@ -77,6 +77,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             const parameterVertex = new ir.ParameterVertex(position)
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex)
+            parameterVertex.debugInfo.sourceNodes.push(parameter);
         })
 
         assert(funcDeclaration.body)
@@ -286,6 +287,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             const initSemantics = processExpression(varDecl.initializer as ts.Expression, semantics.symbolTable);
             semantics.concatSemantics(initSemantics)
             semantics.setVariable(varName, initSemantics.value)
+            initSemantics.value.debugInfo.sourceNodes.push(varDecl.name)
         }
 
         return semantics
@@ -552,6 +554,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics = new GeneratedExpressionSemantics(symbolTable);
         semantics.value = symbolTable.get(identifier);
         semantics.addDataVertex(semantics.value);
+        semantics.value.debugInfo.sourceNodes.push(identifierExpression);
         return semantics
     }
 

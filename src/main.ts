@@ -2,8 +2,7 @@
 import * as ir from 'graphir';
 
 import { processSourceFile } from './extractor';
-import { exportIrToDot } from "./output/dot";
-import { exportIrToRelations } from "./output/relations";
+import { exportIrToDot, exportIrToRelations } from "graphir";
 import * as ast from './ts-ast'
 
 export function extractFromPath(path: string): ir.Graph {
@@ -23,5 +22,3 @@ if (require.main === module) {
     main();
 }
 
-export * from './output/dot';
-export * from './output/relations';
