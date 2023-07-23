@@ -77,7 +77,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             const parameterVertex = new ir.ParameterVertex(position)
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex)
-            parameterVertex.debugInfo.sourceNodes.push(parameter);
+            parameterVertex.debugInfo.sourceNodes.push(parameter.name);
         })
 
         assert(funcDeclaration.body)
