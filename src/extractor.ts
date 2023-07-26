@@ -495,7 +495,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const binaryOperation: BinaryOperation = syntaxKindToBinaryOperation(binExpression.operatorToken.kind)
 
         const semantics = processExpression(binExpression.right, symbolTable)
-        
+
         if (binaryOperation == BinaryOperation.Assign) {
             if (binExpression.left.kind == ts.SyntaxKind.Identifier) {
                 const identifier = ast.getIdentifierName(binExpression.left as ts.Identifier);
@@ -521,6 +521,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             semantics.value = opVertex;
         }
 
+        semantics.value.debugInfo.sourceNodes.push(binExpression);
         return semantics;
     }
 
