@@ -546,6 +546,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         loadVertex.object = semantics.value;
         semantics.concatControlVertex(loadVertex);
         semantics.value = loadVertex;
+        loadVertex.debugInfo.sourceNodes.push(elementAccessExpression);
         return semantics
     }
 
