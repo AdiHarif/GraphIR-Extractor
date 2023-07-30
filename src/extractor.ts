@@ -505,6 +505,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
                 const leftSemantics = storeElementAccessExpression(binExpression.left as ts.ElementAccessExpression, semantics.value, semantics.symbolTable);
                 semantics.concatSemantics(leftSemantics);
             }
+            semantics.value.debugInfo.sourceNodes.push(binExpression.left);
         }
         else {
             const leftSemantics = processExpression(binExpression.left, semantics.symbolTable)
