@@ -142,7 +142,7 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
 
         semantics.concatControlVertex(branchVertex);
 
-        const mergeVertex = new ir.MergeVertex();
+        const mergeVertex = new ir.MergeVertex(branchVertex);
 
         semantics.vertexList.push(...thenSemantics.vertexList);
         semantics.vertexList.push(...elseSemantics.vertexList);

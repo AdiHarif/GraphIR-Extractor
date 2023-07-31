@@ -220,6 +220,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         semantics.concatControlVertex(pass);
         semantics.concatControlVertex(merge);
         const branch = new ir.BranchVertex();
+        merge.branch = branch;
         semantics.concatControlVertex(branch);
         merge.next = branch;
         const assignedVariables = ast.getAssignedVariables(whileStatement);
