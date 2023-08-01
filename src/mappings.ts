@@ -21,6 +21,7 @@ const syntaxKindToBinaryOperationMap: { [key in ts.SyntaxKind]?: BinaryOperation
     [ts.SyntaxKind.MinusToken]: BinaryOperation.Sub,
     [ts.SyntaxKind.AsteriskToken]: BinaryOperation.Mul,
     [ts.SyntaxKind.SlashToken]: BinaryOperation.Div,
+    [ts.SyntaxKind.PercentToken]: BinaryOperation.Mod,
     [ts.SyntaxKind.EqualsToken]: BinaryOperation.Assign,
     [ts.SyntaxKind.LessThanToken]: BinaryOperation.LessThan,
     [ts.SyntaxKind.GreaterThanToken]: BinaryOperation.GreaterThan,
