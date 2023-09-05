@@ -15,7 +15,10 @@ export enum BinaryOperation {
     EqualEqualEqual = '===',
     NotEqualEqual = '!==',
     And = '&&',
-    Or = '||'
+    Or = '||',
+    LeftShift = '<<',
+    RightShift = '>>',
+    UnsignedRightShift = '>>>'
 }
 
 export enum UnaryOperation {
