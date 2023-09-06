@@ -3,6 +3,8 @@ import assert from 'assert'
 
 import ts from 'typescript'
 
+import * as type_utils from './type_utils'
+
 export function getIdentifierName(name: ts.Identifier | ts.PropertyName): string {
     return name['escapedText'];
 }
@@ -10,6 +12,7 @@ export function getIdentifierName(name: ts.Identifier | ts.PropertyName): string
 export function parseFile(fileName: string): ts.SourceFile {
     const host = ts.createCompilerHost({}, true);
     const program = ts.createProgram([fileName], {}, host);
+    type_utils.initializeChecker(program);
     const sourceFiles = program.getSourceFiles().filter((sourceFile: ts.SourceFile) => !sourceFile.isDeclarationFile);
     assert(sourceFiles.length == 1)
     return sourceFiles[0]

@@ -10,6 +10,7 @@ import * as ast from './ts-ast.js'
 import { syntaxKindToBinaryOperation, syntaxKindToUnaryOperation } from "./mappings.js";
 import { GeneratedExpressionSemantics, GeneratedStatementSemantics } from "./semantics.js";
 import { SymbolTable } from "./symbolTable.js";
+import * as type_utils from "./type_utils.js";
 
 export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
@@ -69,7 +70,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const startVertex = new ir.StartVertex();
         let symbolVertex: ir.SymbolVertex;
         if (!symbolTable.has(funcName)) {
-            symbolVertex = new ir.SymbolVertex(funcName, startVertex);
+            symbolVertex = new ir.SymbolVertex(funcName, type_utils.getFunctionType(funcDeclaration), startVertex);
             semantics.symbolTable.set(funcName ,symbolVertex);
         }
         else {
@@ -81,7 +82,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
         funcDeclaration.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
-            const parameterVertex = new ir.ParameterVertex(position)
+            const parameterVertex = new ir.ParameterVertex(position, type_utils.getTypeAtLocation(parameter));
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex)
             parameterVertex.debugInfo.sourceNodes.push(parameter.name);
@@ -125,15 +126,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics = new GeneratedStatementSemantics(symbolTable);
         const startVertex = new ir.StartVertex();
         semantics.concatControlVertex(startVertex)
-        const symbolVertex = new ir.SymbolVertex(`${className}::constructor`, startVertex);
+        const symbolVertex = new ir.SymbolVertex(`${className}::constructor`, type_utils.getFunctionType(constructorDecl), startVertex);
         semantics.addDataVertex(symbolVertex);
 
-        const thisVertex = new ir.ParameterVertex(0);
+        const thisVertex = new ir.ParameterVertex(0); //TODO: add type of this
         semantics.addDataVertex(thisVertex)
         semantics.setVariable('this', thisVertex);
         constructorDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
-            const parameterVertex = new ir.ParameterVertex(position + 1);
+            const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex)
         })
@@ -152,15 +153,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics = new GeneratedStatementSemantics(symbolTable)
         const startVertex = new ir.StartVertex();
         semantics.concatControlVertex(startVertex)
-        const symbolVertex = new ir.SymbolVertex(methodName, startVertex);
+        const symbolVertex = new ir.SymbolVertex(methodName, type_utils.getFunctionType(methodDecl), startVertex);
         semantics.addDataVertex(symbolVertex);
 
-        const thisVertex = new ir.ParameterVertex(0);
+        const thisVertex = new ir.ParameterVertex(0); //TODO: add type of this
         semantics.addDataVertex(thisVertex)
         semantics.setVariable('this', thisVertex);
         methodDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
-            const parameterVertex = new ir.ParameterVertex(position + 1)
+            const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex);
         })
@@ -185,7 +186,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processCallExpression(callExpression: ts.CallExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics: GeneratedExpressionSemantics = processExpression(callExpression.expression, symbolTable);
         const value = semantics.value;
-        const callVertex = new ir.CallVertex();
+        const callVertex = new ir.CallVertex(type_utils.getExpressionType(callExpression));
         //if (value instanceof ir.SymbolVertex) {
         callVertex.callee = value;
         //}
@@ -216,7 +217,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         })
 
         const constructorName: string = className + "::constructor"
-        const constructorVertex = new ir.SymbolVertex(constructorName);
+        const constructorVertex = new ir.SymbolVertex(constructorName, type_utils.getExpressionType(newExpression), newVertex);
         //TODO: add constructor call
         semantics.addDataVertex(constructorVertex);
         semantics.setLastControl(newVertex)
@@ -236,7 +237,8 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const assignedVariables = ast.getAssignedVariables(whileStatement);
         const phiMap: Map<string, ir.PhiVertex> = new Map();
         assignedVariables.forEach((variable) => {
-            const phi = new ir.PhiVertex(merge, [{ value: semantics.symbolTable.get(variable), srcBranch: pass }]);
+            const variableType = semantics.symbolTable.get(variable).type;
+            const phi = new ir.PhiVertex(variableType, merge, [{ value: semantics.symbolTable.get(variable), srcBranch: pass }]);
             phiMap.set(variable, phi);
             semantics.symbolTable.set(variable, phi);
         });
@@ -364,7 +366,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processArrayLiteralExpression(arrayLiteralExp: ts.ArrayLiteralExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics: GeneratedExpressionSemantics = new GeneratedExpressionSemantics(symbolTable)
-        const arrayVertex = new ir.AllocationVertex('Array')
+        const arrayVertex = new ir.AllocationVertex(type_utils.getArrayType());
         semantics.concatControlVertex(arrayVertex)
         semantics.value = arrayVertex;
 
@@ -376,7 +378,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             semantics.concatControlVertex(storeVertex);
 
             // Adding index vertex
-            const indexVertex = new ir.LiteralVertex(index);
+            const indexVertex = new ir.LiteralVertex(index, type_utils.getNumberType());
             storeVertex.property = indexVertex;
             semantics.addDataVertex(indexVertex);
 
@@ -396,7 +398,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processObjectLiteralExpression(objectLiteralExp: ts.ObjectLiteralExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics: GeneratedExpressionSemantics = new GeneratedExpressionSemantics(symbolTable)
-        const objectVertex = new ir.AllocationVertex('Object');
+        const objectVertex = new ir.AllocationVertex(type_utils.getObjectType());
         semantics.concatControlVertex(objectVertex)
         semantics.value  = objectVertex;
 
@@ -410,7 +412,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
             // Adding index vertex
             const propertyName: string = ast.getIdentifierName(newProperty.name);
-            const propertyVertex = new ir.LiteralVertex(propertyName);
+            const propertyVertex = new ir.LiteralVertex(propertyName, type_utils.getStringType());
             storeVertex.property = propertyVertex;
             semantics.addDataVertex(propertyVertex);
 
@@ -461,7 +463,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processNumericLiteral(numLiteral: ts.NumericLiteral, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = new GeneratedExpressionSemantics(symbolTable)
         const value = Number(numLiteral.text)
-        const valueVertex = new ir.LiteralVertex(value);
+        const valueVertex = new ir.LiteralVertex(value, type_utils.getExpressionType(numLiteral));
         semantics.addDataVertex(valueVertex);
         semantics.value = valueVertex
         return semantics
@@ -469,7 +471,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processStringLiteral(strLiteral: ts.StringLiteral, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = new GeneratedExpressionSemantics(symbolTable)
-        const valueVertex = new ir.LiteralVertex(strLiteral.text);
+        const valueVertex = new ir.LiteralVertex(strLiteral.text, type_utils.getExpressionType(strLiteral));
         semantics.addDataVertex(valueVertex);
         semantics.value = valueVertex;
         return semantics
@@ -477,7 +479,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processTrueKeyword(symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = new GeneratedExpressionSemantics(symbolTable)
-        const valueVertex = new ir.LiteralVertex(true);
+        const valueVertex = new ir.LiteralVertex(true, type_utils.getBooleanType());
         semantics.addDataVertex(valueVertex)
         semantics.value = valueVertex
         return semantics
@@ -485,7 +487,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processFalseKeyword(symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = new GeneratedExpressionSemantics(symbolTable)
-        const valueVertex = new ir.LiteralVertex(false);
+        const valueVertex = new ir.LiteralVertex(false, type_utils.getBooleanType());
         semantics.addDataVertex(valueVertex);
         semantics.value = valueVertex;
         return semantics
@@ -494,7 +496,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const unaryOperation: UnaryOperation = syntaxKindToUnaryOperation(prefixUnaryExpression.operator)
         const semantics: GeneratedExpressionSemantics = processExpression(prefixUnaryExpression.operand, symbolTable)
-        const operationVertex = new ir.PrefixUnaryOperationVertex(unaryOperation);
+        const operationVertex = new ir.PrefixUnaryOperationVertex(unaryOperation, type_utils.getExpressionType(prefixUnaryExpression));
         const value = semantics.value;
         operationVertex.operand = value;
         semantics.addDataVertex(operationVertex);
@@ -522,7 +524,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             const leftSemantics = processExpression(binExpression.left, semantics.symbolTable)
             semantics.concatSemantics(leftSemantics);
             //const opVertex = new ir.BinaryOperationVertex(binaryOperation, semantics.value, valueSemantics.value);
-            const opVertex = new ir.BinaryOperationVertex(binaryOperation);
+            const opVertex = new ir.BinaryOperationVertex(binaryOperation, type_utils.getExpressionType(binExpression));
             const leftValue = leftSemantics.value;
             opVertex.left = leftValue;
             const rightValue = semantics.value;
@@ -540,8 +542,8 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function loadPropertyAccessExpression(propertyAccessExpression: ts.PropertyAccessExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = processExpression(propertyAccessExpression.expression, symbolTable)
         const propertyName = ast.getIdentifierName((propertyAccessExpression.name) as ts.Identifier)
-        const loadVertex = new ir.LoadVertex();
-        loadVertex.property = new ir.LiteralVertex(propertyName);
+        const loadVertex = new ir.LoadVertex(type_utils.getExpressionType(propertyAccessExpression));
+        loadVertex.property = new ir.LiteralVertex(propertyName, type_utils.getStringType());
         semantics.addDataVertex(loadVertex.property);
         loadVertex.object = semantics.value;
         semantics.concatControlVertex(loadVertex);
@@ -552,7 +554,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function loadElementAccessExpression(elementAccessExpression: ts.ElementAccessExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = processExpression(elementAccessExpression.expression, symbolTable)
         const argSemantics = processExpression(elementAccessExpression.argumentExpression, symbolTable)
-        const loadVertex = new ir.LoadVertex();
+        const loadVertex = new ir.LoadVertex(type_utils.getExpressionType(elementAccessExpression));
         loadVertex.property = argSemantics.value;
         loadVertex.object = semantics.value;
         semantics.concatControlVertex(loadVertex);
@@ -569,7 +571,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const identifier: string = ast.getIdentifierName(identifierExpression)
         const semantics = new GeneratedExpressionSemantics(symbolTable);
         if (!symbolTable.has(identifier)) {
-            const symbolVertex = new ir.SymbolVertex(identifier);
+            const symbolVertex = new ir.SymbolVertex(identifier, type_utils.getExpressionType(identifierExpression));
             semantics.symbolTable.set(identifier, symbolVertex);
         }
         semantics.value = semantics.symbolTable.get(identifier);

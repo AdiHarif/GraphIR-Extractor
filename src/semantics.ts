@@ -155,7 +155,9 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
                 altValue = semantics.symbolTable.get(key);
             }
             if (altValue && altValue !== value) {
+                const altType = altValue.type;
                 const phiVertex = new ir.PhiVertex(
+                    altType,
                     mergeVertex,
                     [
                         { value: value as ir.DataVertex, srcBranch: thenSemantics.lastControl },
@@ -174,7 +176,9 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
                 if (semantics.symbolTable.has(key)) {
                     const altValue = semantics.symbolTable.get(key);
                     //TODO: support backpatch for phi vertices.
+                    const varType = altValue.type;
                     const phiVertex = new ir.PhiVertex(
+                        varType,
                         mergeVertex,
                         [
                             { value: value as ir.DataVertex, srcBranch: elseSemantics.lastControl },
