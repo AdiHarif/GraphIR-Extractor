@@ -28,7 +28,7 @@ export abstract class GeneratedSemantics {
         else if (other.firstControl) {
             assert(this.lastControl)
             assert(this.lastControl instanceof ir.NonTerminalControlVertex);
-            this.lastControl.next = other.firstControl;
+            this.lastControl.next = other.firstControl as ir.NonInitialControlVertex;
             this.lastControl = other.lastControl
         }
 
@@ -56,7 +56,6 @@ export abstract class GeneratedSemantics {
     }
 
     public concatControlVertex(vertex: ir.ControlVertex): void {
-        assert(vertex instanceof ir.Vertex)
         this.vertexList.push(vertex)
         if (!this.firstControl) {
             assert(!this.lastControl)
@@ -65,7 +64,7 @@ export abstract class GeneratedSemantics {
         else {
             assert(this.lastControl)
             assert(this.lastControl instanceof ir.NonTerminalControlVertex)
-            this.lastControl.next = vertex
+            this.lastControl.next = vertex as ir.NonInitialControlVertex
             this.lastControl = vertex
         }
     }
@@ -114,31 +113,42 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
 
     private readonly subgraphs: Array<ir.Graph> = new Array<ir.Graph>()
 
+    private static wrapSemanticsAsBlock(semantics: GeneratedStatementSemantics): void {
+        const beginVertex = new ir.BlockBeginVertex();
+        const endVertex = new ir.BlockEndVertex();
+        if (semantics.firstControl) {
+            assert(semantics.lastControl);
+            beginVertex.next = semantics.firstControl as ir.NonInitialControlVertex;
+            (semantics.lastControl as ir.NonTerminalControlVertex).next = endVertex;
+        }
+        else {
+            beginVertex.next = endVertex;
+            semantics.firstControl = beginVertex;
+            semantics.lastControl = endVertex;
+        }
+        semantics.vertexList.push(beginVertex, endVertex);
+    }
+
     static createLoopSemantics(condSemantics: GeneratedExpressionSemantics, bodySemantics: GeneratedStatementSemantics): GeneratedStatementSemantics {
         throw new Error("Method not implemented.")
     }
+
     static createIfSemantics(condSemantics: GeneratedExpressionSemantics, thenSemantics: GeneratedStatementSemantics, elseSemantics: GeneratedStatementSemantics): GeneratedStatementSemantics {
         const semantics = new GeneratedStatementSemantics();
         semantics.concatSemantics(condSemantics);
 
-        if (!thenSemantics.lastControl) {
-            assert(!thenSemantics.firstControl);
-            thenSemantics.concatControlVertex(new ir.PassVertex());
-        }
+        this.wrapSemanticsAsBlock(thenSemantics);
 
         if (!elseSemantics) {
             elseSemantics = new GeneratedStatementSemantics();
         }
 
-        if (!elseSemantics.lastControl) {
-            assert(!elseSemantics.firstControl);
-            elseSemantics.concatControlVertex(new ir.PassVertex());
-        }
+        this.wrapSemanticsAsBlock(elseSemantics);
 
         const branchVertex = new ir.BranchVertex(
             condSemantics.value,
-            thenSemantics.getFirstControl() as ir.ControlVertex,
-            elseSemantics.getFirstControl() as ir.ControlVertex
+            thenSemantics.getFirstControl() as ir.BlockBeginVertex,
+            elseSemantics.getFirstControl() as ir.BlockBeginVertex
         );
 
         semantics.concatControlVertex(branchVertex);
@@ -194,8 +204,8 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         });
 
 
-        (thenSemantics.lastControl as ir.NonTerminalControlVertex).next = mergeVertex;
-        (elseSemantics.lastControl as ir.NonTerminalControlVertex).next = mergeVertex;
+        (thenSemantics.lastControl as ir.BlockEndVertex).next = mergeVertex;
+        (elseSemantics.lastControl as ir.BlockEndVertex).next = mergeVertex;
         semantics.setLastControl(mergeVertex);
         return semantics;
     }

@@ -129,7 +129,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const symbolVertex = new ir.SymbolVertex(`${className}::constructor`, type_utils.getFunctionType(constructorDecl), startVertex);
         semantics.addDataVertex(symbolVertex);
 
-        const thisVertex = new ir.ParameterVertex(0); //TODO: add type of this
+        const thisVertex = new ir.ParameterVertex(0, undefined); //TODO: add type of this
         semantics.addDataVertex(thisVertex)
         semantics.setVariable('this', thisVertex);
         constructorDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
@@ -156,7 +156,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const symbolVertex = new ir.SymbolVertex(methodName, type_utils.getFunctionType(methodDecl), startVertex);
         semantics.addDataVertex(symbolVertex);
 
-        const thisVertex = new ir.ParameterVertex(0); //TODO: add type of this
+        const thisVertex = new ir.ParameterVertex(0, undefined); //TODO: add type of this
         semantics.addDataVertex(thisVertex)
         semantics.setVariable('this', thisVertex);
         methodDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
@@ -205,7 +205,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processNewExpression(newExpression: ts.NewExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const className: string = ast.getIdentifierName(newExpression.expression as ts.Identifier)
         const semantics: GeneratedExpressionSemantics = new GeneratedExpressionSemantics(symbolTable)
-        const newVertex = new ir.AllocationVertex(); //TODO: update with class name, constructor and args.
+        const newVertex = new ir.AllocationVertex(undefined); //TODO: update with class name, constructor and args.
         semantics.concatControlVertex(newVertex)
         semantics.value = newVertex;
 
@@ -246,19 +246,19 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         semantics.concatSemantics(condSemantics);
         branch.condition = condSemantics.value;
         const bodySemantics = processStatement(whileStatement.statement, condSemantics.symbolTable);
-        const bodyEnd = new ir.PassVertex();
+        const bodyEnd = new ir.BlockEndVertex();
         bodySemantics.concatControlVertex(bodyEnd);
         phiMap.forEach((phi, variable) => {
             const value = bodySemantics.symbolTable.get(variable);
             phi.addOperand({ value: value, srcBranch: bodyEnd });
             bodySemantics.symbolTable.set(variable, phi);
         });
-        const truePass = new ir.PassVertex();
+        const truePass = new ir.BlockBeginVertex();
         branch.trueNext = truePass;
         semantics.setLastControl(truePass);
         semantics.concatSemantics(bodySemantics);
         bodyEnd.next = merge;
-        const falsePass = new ir.PassVertex();
+        const falsePass = new ir.BlockBeginVertex();
         branch.falseNext = falsePass;
         semantics.setLastControl(falsePass);
         return semantics;
