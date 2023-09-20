@@ -12,6 +12,7 @@ import { GeneratedExpressionSemantics, GeneratedStatementSemantics } from "./sem
 import { SymbolTable } from "./symbolTable.js";
 import * as type_utils from "./type_utils.js";
 
+
 export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     const semantics = new GeneratedStatementSemantics()
@@ -79,6 +80,10 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         }
         semantics.concatControlVertex(startVertex);
         semantics.addDataVertex(symbolVertex);
+
+        const thisVertex = new ir.SymbolVertex('this', type_utils.getAnyType());
+        semantics.addDataVertex(thisVertex);
+        semantics.symbolTable.set('this', symbolVertex);
 
         funcDeclaration.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];

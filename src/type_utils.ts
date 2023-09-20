@@ -38,3 +38,7 @@ export function getArrayType(): ts.Type {
 export function getObjectType(): ts.Type {
     return checker.getTypeAtLocation(ts.factory.createObjectLiteralExpression([]));
 }
+
+export function getAnyType(): ts.Type {
+    return checker.getTypeAtLocation(ts.factory.createAsExpression(ts.factory.createNull(), ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword)));
+}
