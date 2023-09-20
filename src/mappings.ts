@@ -35,7 +35,8 @@ const syntaxKindToBinaryOperationMap: { [key in ts.SyntaxKind]?: BinaryOperation
     [ts.SyntaxKind.BarBarToken]: BinaryOperation.Or,
     [ts.SyntaxKind.LessThanLessThanToken]: BinaryOperation.LeftShift,
     [ts.SyntaxKind.GreaterThanGreaterThanToken]: BinaryOperation.RightShift,
-    [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken]: BinaryOperation.UnsignedRightShift
+    [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken]: BinaryOperation.UnsignedRightShift,
+    [ts.SyntaxKind.AmpersandToken]: BinaryOperation.BitwiseAnd,
 }
 
 export function syntaxKindToBinaryOperation(kind: ts.SyntaxKind): BinaryOperation {

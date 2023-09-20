@@ -123,9 +123,9 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         }
         else {
             beginVertex.next = endVertex;
-            semantics.firstControl = beginVertex;
-            semantics.lastControl = endVertex;
         }
+        semantics.firstControl = beginVertex;
+        semantics.lastControl = endVertex;
         semantics.vertexList.push(beginVertex, endVertex);
     }
 
