@@ -18,7 +18,8 @@ export enum BinaryOperation {
     Or = '||',
     LeftShift = '<<',
     RightShift = '>>',
-    UnsignedRightShift = '>>>'
+    UnsignedRightShift = '>>>',
+    BitwiseAnd = '&'
 }
 
 export enum UnaryOperation {
