@@ -82,6 +82,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
         assert(funcDeclaration.body)
         semantics.concatSemantics(processBlock(funcDeclaration.body, semantics.symbolTable))
+        if (!(semantics.getLastControl() instanceof ir.ReturnVertex)) {
+            semantics.concatControlVertex(new ir.ReturnVertex());
+        }
         semantics.purge();
         semantics.symbolTable.set(funcName ,symbolVertex);
         return semantics
