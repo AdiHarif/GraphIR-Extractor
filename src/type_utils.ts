@@ -42,3 +42,7 @@ export function getObjectType(): ts.Type {
 export function getAnyType(): ts.Type {
     return checker.getTypeAtLocation(ts.factory.createAsExpression(ts.factory.createNull(), ts.factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword)));
 }
+
+export function getNullType(): ts.Type {
+    return checker.getTypeAtLocation(ts.factory.createNull());
+}

@@ -326,6 +326,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.FalseKeyword:
                 semantics = processFalseKeyword(symbolTable)
                 break
+            case ts.SyntaxKind.NullKeyword:
+                semantics = processNullKeyword(symbolTable);
+                break;
             case ts.SyntaxKind.PrefixUnaryExpression:
                 semantics = processPrefixUnaryExpression(expression as ts.PrefixUnaryExpression, symbolTable)
                 break
@@ -496,6 +499,14 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         semantics.addDataVertex(valueVertex);
         semantics.value = valueVertex;
         return semantics
+    }
+
+    function processNullKeyword(symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const semantics = new GeneratedExpressionSemantics(symbolTable)
+        const valueVertex = new ir.LiteralVertex(null, type_utils.getNullType());
+        semantics.addDataVertex(valueVertex);
+        semantics.value = valueVertex;
+        return semantics;
     }
 
     function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
