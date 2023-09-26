@@ -67,8 +67,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics = new GeneratedStatementSemantics(symbolTable);
         const funcName: string = funcDeclaration.name['escapedText'] as string;
         const startVertex = new ir.StartVertex();
-        const symbolVertex = new ir.SymbolVertex(funcName, startVertex);
-        semantics.symbolTable.set(funcName ,symbolVertex);
+        let symbolVertex: ir.SymbolVertex;
+        if (!symbolTable.has(funcName)) {
+            symbolVertex = new ir.SymbolVertex(funcName, startVertex);
+            semantics.symbolTable.set(funcName ,symbolVertex);
+        }
+        else {
+            symbolVertex = symbolTable.get(funcName) as ir.SymbolVertex;
+            symbolVertex.startVertex = startVertex;
+        }
         semantics.concatControlVertex(startVertex);
         semantics.addDataVertex(symbolVertex);
 

@@ -84,7 +84,8 @@ export abstract class GeneratedSemantics {
     }
 
     public purge(): void {
-        this.symbolTable.clear();
+        const keys = [...this.symbolTable.keys()].filter(key => !(this.symbolTable.get(key) instanceof ir.SymbolVertex));
+        keys.forEach(key => this.symbolTable.delete(key));
         this.firstControl = undefined;
         this.lastControl = undefined;
     }
