@@ -21,7 +21,7 @@
     "graphir": "file:submodules/graphir",
     "typescript": "^4.8.4"
   },
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "@types/jest": "^29.4.0",
     "@typescript-eslint/eslint-plugin": "^5.52.0",

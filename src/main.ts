@@ -1,9 +1,9 @@
 
 import * as ir from 'graphir';
 
-import { processSourceFile } from './extractor';
+import { processSourceFile } from './extractor.js';
 import { exportIrToDot, exportIrToRelations } from "graphir";
-import * as ast from './ts-ast'
+import * as ast from './ts-ast.js'
 
 export function extractFromPath(path: string): ir.Graph {
     const sourceFile = ast.parseFile(path)
@@ -18,7 +18,7 @@ function main() {
     exportIrToDot(ir, outDir)
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
+    // module was not imported but called directly
     main();
 }
-

@@ -2,7 +2,7 @@
 import assert from 'assert'
 
 import * as ir from 'graphir'
-import { SymbolTable } from './symbolTable';
+import { SymbolTable } from './symbolTable.js';
 
 
 export abstract class GeneratedSemantics {

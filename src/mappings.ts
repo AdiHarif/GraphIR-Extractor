@@ -1,7 +1,7 @@
 
-import * as ts from 'typescript'
+import ts from 'typescript'
 
-import { BinaryOperation, UnaryOperation } from './types'
+import { BinaryOperation, UnaryOperation } from './types.js'
 
 const syntaxKindToUnaryOperationMap: { [key in ts.SyntaxKind]?: UnaryOperation } = {
     [ts.SyntaxKind.PlusToken]: UnaryOperation.Plus,

@@ -1,15 +1,15 @@
 
-import * as ts from "typescript";
+import ts from "typescript";
 
 import * as ir from "graphir";
 
 import assert from 'assert';
 
-import { BinaryOperation, UnaryOperation } from "./types";
-import * as ast from './ts-ast'
-import { syntaxKindToBinaryOperation, syntaxKindToUnaryOperation } from "./mappings";
-import { GeneratedExpressionSemantics, GeneratedStatementSemantics } from "./semantics";
-import { SymbolTable } from "./symbolTable";
+import { BinaryOperation, UnaryOperation } from "./types.js";
+import * as ast from './ts-ast.js'
+import { syntaxKindToBinaryOperation, syntaxKindToUnaryOperation } from "./mappings.js";
+import { GeneratedExpressionSemantics, GeneratedStatementSemantics } from "./semantics.js";
+import { SymbolTable } from "./symbolTable.js";
 
 export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
