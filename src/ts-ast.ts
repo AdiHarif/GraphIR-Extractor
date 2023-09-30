@@ -3,7 +3,7 @@ import assert from 'assert'
 
 import ts from 'typescript'
 
-import * as type_utils from './type_utils'
+import * as type_utils from './type_utils.js'
 
 export function getIdentifierName(name: ts.Identifier | ts.PropertyName): string {
     return name['escapedText'];

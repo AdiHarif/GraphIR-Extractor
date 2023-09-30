@@ -1,8 +1,8 @@
 
 import * as ir from 'graphir';
+import { exportIrToDot, exportIrToRelations } from "graphir";
 
 import { processSourceFile } from './extractor.js';
-import { exportIrToDot, exportIrToRelations } from "graphir";
 import * as ast from './ts-ast.js'
 
 export function extractFromPath(path: string): ir.Graph {
