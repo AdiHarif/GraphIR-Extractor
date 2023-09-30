@@ -87,6 +87,7 @@ export abstract class GeneratedSemantics {
         keys.forEach(key => this.symbolTable.delete(key));
         this.firstControl = undefined;
         this.lastControl = undefined;
+        this.vertexList = [];
     }
 }
 
@@ -219,10 +220,22 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         this.subgraphs.push(graph)
     }
 
+    public wrapSubgraph() {
+        this.addSubgraph(this.createGraph());
+        this.purge();
+    }
+
     public createGraph(): ir.Graph {
         assert(this.firstControl instanceof ir.StartVertex)
 
         //this.vertexList = this.vertexList.filter((vertex) => !(vertex instanceof ir.SymbolVertex) || vertex.inEdges.length > 0);
-        return new ir.Graph(this.vertexList, this.firstControl ,this.subgraphs)
+        return new ir.Graph(this.vertexList, this.firstControl ,[...this.subgraphs])
+    }
+
+    public concatSemantics(other: GeneratedSemantics): void {
+        if (other instanceof GeneratedStatementSemantics) {
+            this.subgraphs.push(...other.subgraphs);
+        }
+        super.concatSemantics(other);
     }
 }

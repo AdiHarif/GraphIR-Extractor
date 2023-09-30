@@ -98,7 +98,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (!(semantics.getLastControl() instanceof ir.ReturnVertex)) {
             semantics.concatControlVertex(new ir.ReturnVertex());
         }
-        semantics.purge();
+        semantics.wrapSubgraph();
         semantics.symbolTable.set(funcName ,symbolVertex);
         return semantics
     }
