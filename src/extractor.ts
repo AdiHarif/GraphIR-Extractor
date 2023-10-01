@@ -573,6 +573,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const loadVertex = new ir.LoadVertex(type_utils.getExpressionType(elementAccessExpression));
         loadVertex.property = argSemantics.value;
         loadVertex.object = semantics.value;
+        semantics.concatSemantics(argSemantics);
         semantics.concatControlVertex(loadVertex);
         semantics.value = loadVertex;
         loadVertex.debugInfo.sourceNodes.push(elementAccessExpression);
