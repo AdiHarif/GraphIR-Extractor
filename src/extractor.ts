@@ -190,18 +190,16 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processCallExpression(callExpression: ts.CallExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics: GeneratedExpressionSemantics = processExpression(callExpression.expression, symbolTable);
-        const value = semantics.value;
+        const callee = semantics.value;
         const callVertex = new ir.CallVertex(type_utils.getExpressionType(callExpression));
-        //if (value instanceof ir.SymbolVertex) {
-        callVertex.callee = value;
-        //}
-        semantics.concatControlVertex(callVertex);
-
         callExpression.arguments.forEach((argument) => {
             const argSemantics: GeneratedExpressionSemantics = processExpression(argument, semantics.symbolTable);
             callVertex.pushArg(argSemantics.value);
             semantics.concatSemantics(argSemantics);
         })
+
+        callVertex.callee = callee;
+        semantics.concatControlVertex(callVertex);
 
         semantics.value = callVertex;
         return semantics;
