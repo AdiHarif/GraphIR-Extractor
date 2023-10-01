@@ -19,6 +19,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     semantics.concatControlVertex(new ir.StartVertex());
 
     sourceFile.statements.forEach(statement => {
+        if (statement.kind == ts.SyntaxKind.FunctionDeclaration) {
+            const name = ast.getIdentifierName((statement as ts.FunctionDeclaration).name);
+            const symbol = new ir.SymbolVertex(name, type_utils.getFunctionType(statement as ts.FunctionDeclaration));
+            semantics.addDataVertex(symbol);
+            semantics.symbolTable.set(name, symbol);
+        }
+    });
+
+    sourceFile.statements.forEach(statement => {
         const statementSemantics = processStatement(statement, semantics.symbolTable)
         semantics.concatSemantics(statementSemantics)
     })
@@ -73,13 +82,13 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (!symbolTable.has(funcName)) {
             symbolVertex = new ir.SymbolVertex(funcName, type_utils.getFunctionType(funcDeclaration), startVertex);
             semantics.symbolTable.set(funcName ,symbolVertex);
+            semantics.addDataVertex(symbolVertex);
         }
         else {
             symbolVertex = symbolTable.get(funcName) as ir.SymbolVertex;
             symbolVertex.startVertex = startVertex;
         }
         semantics.concatControlVertex(startVertex);
-        semantics.addDataVertex(symbolVertex);
 
         const thisVertex = new ir.SymbolVertex('this', type_utils.getAnyType());
         semantics.addDataVertex(thisVertex);
@@ -588,9 +597,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (!symbolTable.has(identifier)) {
             const symbolVertex = new ir.SymbolVertex(identifier, type_utils.getExpressionType(identifierExpression));
             semantics.symbolTable.set(identifier, symbolVertex);
+            semantics.addDataVertex(symbolVertex);
         }
         semantics.value = semantics.symbolTable.get(identifier);
-        semantics.addDataVertex(semantics.value);
         semantics.value.debugInfo.sourceNodes.push(identifierExpression);
         return semantics
     }
