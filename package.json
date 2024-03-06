@@ -7,7 +7,7 @@
     "test": "tests"
   },
   "scripts": {
-    "preinstall": "pushd submodules/graphir && npm install && npm run build",
+    "preinstall": "git submodule update --init && pushd submodules/graphir && npm install && npm run build",
     "build": "tsc",
     "start": "python3 scripts/run.py",
     "test": "jest"
