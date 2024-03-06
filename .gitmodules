@@ -1,0 +1,3 @@
+[submodule "submodules/graphir"]
+	path = submodules/graphir
+	url = https://github.com/AdiHarif/GraphIR.git

@@ -17,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^18.11.9",
+    "graphir": "file:submodules/graphir",
     "typescript": "^4.8.4"
   },
   "type": "commonjs",
