@@ -31,5 +31,9 @@
         "samples",
         "build",
         "jest.config.js"
+    ],
+    "include": [
+        "src/**/*.ts",
+        "test/**/*.ts"
     ]
 }
