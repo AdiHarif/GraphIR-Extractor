@@ -215,24 +215,17 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     }
 
     function processNewExpression(newExpression: ts.NewExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
-        const className: string = ast.getIdentifierName(newExpression.expression as ts.Identifier)
-        const semantics: GeneratedExpressionSemantics = new GeneratedExpressionSemantics(symbolTable)
-        const newVertex = new ir.AllocationVertex(undefined); //TODO: update with class name, constructor and args.
-        semantics.concatControlVertex(newVertex)
-        semantics.value = newVertex;
+        const semantics: GeneratedExpressionSemantics = processExpression(newExpression.expression, symbolTable);
+        const newVertex = new ir.AllocationVertex(undefined, semantics.value); // TODO: add type
 
         newExpression.arguments?.forEach((argument, pos) => {
             const argSemantics: GeneratedExpressionSemantics = processExpression(argument, symbolTable);
             semantics.concatSemantics(argSemantics)
-            //semantics.addEdge(new Edge(argSemantics.value, newVertex, `pos: ${pos}`, EdgeKind.Data))
-            //TODO: restore
+            newVertex.pushArg(argSemantics.value);
         })
 
-        const constructorName: string = className + "::constructor"
-        const constructorVertex = new ir.SymbolVertex(constructorName, type_utils.getExpressionType(newExpression), newVertex);
-        //TODO: add constructor call
-        semantics.addDataVertex(constructorVertex);
-        semantics.setLastControl(newVertex)
+        semantics.concatControlVertex(newVertex)
+        semantics.value = newVertex;
         return semantics
     }
 
