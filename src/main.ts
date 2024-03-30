@@ -1,4 +1,7 @@
 
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+
 import * as ir from 'graphir';
 import { exportIrToDot, exportIrToRelations } from "graphir";
 
@@ -10,12 +13,25 @@ export function extractFromPath(path: string): ir.Graph {
     return processSourceFile(sourceFile);
 }
 
+function parseCliArgs() {
+    return yargs(hideBin(process.argv))
+        .option('input-file', { alias: 'i', type: 'string', description: 'Input file', demandOption: true })
+        .option('out-dir', { alias: 'o', type: 'string', description: 'Output directory', default: 'out'})
+        .option('output-format', { alias: 'f', type: 'string', description: 'Output format', default: 'all', choices: ['all', 'dot', 'csv'] })
+        .parseSync();
+}
+
 function main() {
-    const outDir: string = process.argv[2]
-    const sourceName: string = process.argv[3];
+    const argv = parseCliArgs();
+    const outDir: string = argv.outDir;
+    const sourceName: string = argv.inputFile;
     const ir: ir.Graph = extractFromPath(sourceName);
-    exportIrToRelations(ir, outDir)
-    exportIrToDot(ir, outDir)
+    if (argv.outputFormat === 'all' || argv.outputFormat === 'csv') {
+        exportIrToRelations(ir, outDir)
+    }
+    if (argv.outputFormat === 'all' || argv.outputFormat === 'dot') {
+        exportIrToDot(ir, outDir)
+    }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

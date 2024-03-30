@@ -10,7 +10,7 @@
     "preinstall": "git submodule update --init && pushd submodules/graphir && npm install && npm run build",
     "build": "tsc",
     "watch:build": "tsc -w",
-    "start": "python3 scripts/run.py",
+    "start": "node build/main.js",
     "test": "jest"
   },
   "types": "build/main.d.ts",
