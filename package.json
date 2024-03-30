@@ -18,13 +18,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^18.11.9",
     "graphir": "file:submodules/graphir",
     "typescript": "^4.8.4"
   },
   "type": "module",
   "devDependencies": {
     "@types/jest": "^29.4.0",
+    "@types/node": "^20.12.2",
     "@typescript-eslint/eslint-plugin": "^5.52.0",
     "@typescript-eslint/parser": "^5.52.0",
     "eslint": "^8.34.0",
