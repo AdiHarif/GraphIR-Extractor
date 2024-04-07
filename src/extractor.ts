@@ -257,6 +257,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             const value = bodySemantics.symbolTable.get(variable);
             phi.addOperand({ value: value, srcBranch: bodyEnd });
             bodySemantics.symbolTable.set(variable, phi);
+            bodySemantics.addDataVertex(phi);
         });
         const truePass = new ir.BlockBeginVertex();
         branch.trueNext = truePass;
