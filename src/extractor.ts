@@ -231,7 +231,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processWhileStatement(whileStatement: ts.WhileStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
         const semantics = new GeneratedStatementSemantics(symbolTable);
-        const pass = new ir.PassVertex();
+        const pass = new ir.BlockEndVertex();
         const merge = new ir.MergeVertex();
         semantics.concatControlVertex(pass);
         semantics.concatControlVertex(merge);

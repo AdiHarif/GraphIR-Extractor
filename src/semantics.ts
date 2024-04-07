@@ -63,7 +63,12 @@ export abstract class GeneratedSemantics {
         }
         else {
             assert(this.lastControl)
-            assert(this.lastControl instanceof ir.NonTerminalControlVertex)
+            if (this.lastControl instanceof ir.BlockEndVertex) {
+                assert(vertex instanceof ir.MergeVertex)
+            }
+            else {
+                assert(this.lastControl instanceof ir.NonTerminalControlVertex)
+            }
             this.lastControl.next = vertex as ir.NonInitialControlVertex
             this.lastControl = vertex
         }
