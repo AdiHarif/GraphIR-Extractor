@@ -107,7 +107,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (!(semantics.getLastControl() instanceof ir.ReturnVertex)) {
             semantics.concatControlVertex(new ir.ReturnVertex());
         }
-        semantics.wrapSubgraph();
+        semantics.wrapSubgraph(type_utils.getTypeAtLocation(funcDeclaration));
         semantics.symbolTable.set(funcName ,symbolVertex);
         return semantics
     }
@@ -242,7 +242,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const assignedVariables = ast.getAssignedVariables(whileStatement);
         const phiMap: Map<string, ir.PhiVertex> = new Map();
         assignedVariables.forEach((variable) => {
-            const variableType = semantics.symbolTable.get(variable).type;
+            const variableType = semantics.symbolTable.get(variable).declaredType;
             const phi = new ir.PhiVertex(variableType, merge, [{ value: semantics.symbolTable.get(variable), srcBranch: pass }]);
             phiMap.set(variable, phi);
             semantics.symbolTable.set(variable, phi);

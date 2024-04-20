@@ -1,6 +1,8 @@
 
 import assert from 'assert'
 
+import * as ts from 'typescript'
+
 import * as ir from 'graphir'
 import { SymbolTable } from './symbolTable.js';
 
@@ -171,7 +173,7 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
                 altValue = semantics.symbolTable.get(key);
             }
             if (altValue && altValue !== value) {
-                const altType = altValue.type;
+                const altType = altValue.declaredType;
                 const phiVertex = new ir.PhiVertex(
                     altType,
                     mergeVertex,
@@ -192,7 +194,7 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
                 if (semantics.symbolTable.has(key)) {
                     const altValue = semantics.symbolTable.get(key);
                     //TODO: support backpatch for phi vertices.
-                    const varType = altValue.type;
+                    const varType = altValue.declaredType;
                     const phiVertex = new ir.PhiVertex(
                         varType,
                         mergeVertex,
@@ -225,8 +227,10 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         this.subgraphs.push(graph)
     }
 
-    public wrapSubgraph() {
-        this.addSubgraph(this.createGraph());
+    public wrapSubgraph(functionType: ts.Type) {
+        const graph = this.createGraph();
+        graph.declaredType = functionType; //TODO: refactor this out of here
+        this.addSubgraph(graph);
         this.purge();
     }
 
