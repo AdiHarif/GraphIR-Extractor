@@ -27,23 +27,3 @@ export enum UnaryOperation {
     Minus = '-',
     Not = '!'
 }
-
-export enum VertexType {
-    Const,
-    Parameter,
-    BinaryOperation,
-    UnaryOperation,
-    While,
-    If,
-    Phi,
-    Start,
-    Call,
-    Dummy,
-    Merge,
-    Return,
-    Continue,
-    Break,
-    New,
-    Load,
-    Store
-}
