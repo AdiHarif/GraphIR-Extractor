@@ -1,7 +1,27 @@
 
 import ts from 'typescript'
 
-export enum BinaryOperation {
+
+export enum UnaryOperator {
+    Plus = '+',
+    Minus = '-',
+    Not = '!'
+}
+
+const syntaxKindToUnaryOperatorMap: { [key in ts.SyntaxKind]?: UnaryOperator } = {
+    [ts.SyntaxKind.PlusToken]: UnaryOperator.Plus,
+    [ts.SyntaxKind.MinusToken]: UnaryOperator.Minus,
+    [ts.SyntaxKind.ExclamationToken]: UnaryOperator.Not,
+}
+
+export function syntaxKindToUnaryOperator(kind: ts.SyntaxKind): UnaryOperator {
+    if (!(kind in syntaxKindToUnaryOperatorMap)) {
+        throw new Error(`SyntaxKind ${ts.SyntaxKind[kind]} is either not an unary operator, or its not supported)`)
+    }
+    return syntaxKindToUnaryOperatorMap[kind]
+}
+
+export enum BinaryOperator {
     Add = '+',
     Sub = '-',
     Mul = '*',
@@ -24,51 +44,32 @@ export enum BinaryOperation {
     BitwiseAnd = '&'
 }
 
-export enum UnaryOperation {
-    Plus = '+',
-    Minus = '-',
-    Not = '!'
+const syntaxKindToBinaryOperatorMap: { [key in ts.SyntaxKind]?: BinaryOperator } = {
+    [ts.SyntaxKind.PlusToken]: BinaryOperator.Add,
+    [ts.SyntaxKind.MinusToken]: BinaryOperator.Sub,
+    [ts.SyntaxKind.AsteriskToken]: BinaryOperator.Mul,
+    [ts.SyntaxKind.SlashToken]: BinaryOperator.Div,
+    [ts.SyntaxKind.PercentToken]: BinaryOperator.Mod,
+    [ts.SyntaxKind.EqualsToken]: BinaryOperator.Assign,
+    [ts.SyntaxKind.LessThanToken]: BinaryOperator.LessThan,
+    [ts.SyntaxKind.GreaterThanToken]: BinaryOperator.GreaterThan,
+    [ts.SyntaxKind.LessThanEqualsToken]: BinaryOperator.LessThanEqual,
+    [ts.SyntaxKind.GreaterThanEqualsToken]: BinaryOperator.GreaterThanEqual,
+    [ts.SyntaxKind.EqualsEqualsToken]: BinaryOperator.EqualEqual,
+    [ts.SyntaxKind.ExclamationEqualsToken]: BinaryOperator.NotEqual,
+    [ts.SyntaxKind.EqualsEqualsEqualsToken]: BinaryOperator.EqualEqualEqual,
+    [ts.SyntaxKind.ExclamationEqualsEqualsToken]: BinaryOperator.NotEqualEqual,
+    [ts.SyntaxKind.AmpersandAmpersandToken]: BinaryOperator.And,
+    [ts.SyntaxKind.BarBarToken]: BinaryOperator.Or,
+    [ts.SyntaxKind.LessThanLessThanToken]: BinaryOperator.LeftShift,
+    [ts.SyntaxKind.GreaterThanGreaterThanToken]: BinaryOperator.RightShift,
+    [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken]: BinaryOperator.UnsignedRightShift,
+    [ts.SyntaxKind.AmpersandToken]: BinaryOperator.BitwiseAnd,
 }
 
-const syntaxKindToUnaryOperationMap: { [key in ts.SyntaxKind]?: UnaryOperation } = {
-    [ts.SyntaxKind.PlusToken]: UnaryOperation.Plus,
-    [ts.SyntaxKind.MinusToken]: UnaryOperation.Minus,
-    [ts.SyntaxKind.ExclamationToken]: UnaryOperation.Not,
-}
-
-export function syntaxKindToUnaryOperation(kind: ts.SyntaxKind): UnaryOperation {
-    if (!(kind in syntaxKindToUnaryOperationMap)) {
-        throw new Error(`SyntaxKind ${ts.SyntaxKind[kind]} is either not an unary operator, or its not supported)`)
-    }
-    return syntaxKindToUnaryOperationMap[kind]
-}
-
-const syntaxKindToBinaryOperationMap: { [key in ts.SyntaxKind]?: BinaryOperation } = {
-    [ts.SyntaxKind.PlusToken]: BinaryOperation.Add,
-    [ts.SyntaxKind.MinusToken]: BinaryOperation.Sub,
-    [ts.SyntaxKind.AsteriskToken]: BinaryOperation.Mul,
-    [ts.SyntaxKind.SlashToken]: BinaryOperation.Div,
-    [ts.SyntaxKind.PercentToken]: BinaryOperation.Mod,
-    [ts.SyntaxKind.EqualsToken]: BinaryOperation.Assign,
-    [ts.SyntaxKind.LessThanToken]: BinaryOperation.LessThan,
-    [ts.SyntaxKind.GreaterThanToken]: BinaryOperation.GreaterThan,
-    [ts.SyntaxKind.LessThanEqualsToken]: BinaryOperation.LessThanEqual,
-    [ts.SyntaxKind.GreaterThanEqualsToken]: BinaryOperation.GreaterThanEqual,
-    [ts.SyntaxKind.EqualsEqualsToken]: BinaryOperation.EqualEqual,
-    [ts.SyntaxKind.ExclamationEqualsToken]: BinaryOperation.NotEqual,
-    [ts.SyntaxKind.EqualsEqualsEqualsToken]: BinaryOperation.EqualEqualEqual,
-    [ts.SyntaxKind.ExclamationEqualsEqualsToken]: BinaryOperation.NotEqualEqual,
-    [ts.SyntaxKind.AmpersandAmpersandToken]: BinaryOperation.And,
-    [ts.SyntaxKind.BarBarToken]: BinaryOperation.Or,
-    [ts.SyntaxKind.LessThanLessThanToken]: BinaryOperation.LeftShift,
-    [ts.SyntaxKind.GreaterThanGreaterThanToken]: BinaryOperation.RightShift,
-    [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken]: BinaryOperation.UnsignedRightShift,
-    [ts.SyntaxKind.AmpersandToken]: BinaryOperation.BitwiseAnd,
-}
-
-export function syntaxKindToBinaryOperation(kind: ts.SyntaxKind): BinaryOperation {
-    if (!(kind in syntaxKindToBinaryOperationMap)) {
+export function syntaxKindToBinaryOperator(kind: ts.SyntaxKind): BinaryOperator {
+    if (!(kind in syntaxKindToBinaryOperatorMap)) {
         throw new Error(`SyntaxKind ${ts.SyntaxKind[kind]} is either not a binary operator, or its not supported)`)
     }
-    return syntaxKindToBinaryOperationMap[kind]
+    return syntaxKindToBinaryOperatorMap[kind]
 }

@@ -6,7 +6,7 @@ import * as ir from "graphir";
 import assert from 'assert';
 
 import * as ast from './ts-ast.js'
-import { syntaxKindToBinaryOperation, syntaxKindToUnaryOperation, UnaryOperation, BinaryOperation } from "./mappings.js";
+import { syntaxKindToBinaryOperator, syntaxKindToUnaryOperator, UnaryOperator, BinaryOperator } from "./mappings.js";
 import { GeneratedExpressionSemantics, GeneratedStatementSemantics } from "./semantics.js";
 import { SymbolTable } from "./symbolTable.js";
 import * as type_utils from "./type_utils.js";
@@ -510,9 +510,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     }
 
     function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
-        const unaryOperation: UnaryOperation = syntaxKindToUnaryOperation(prefixUnaryExpression.operator)
+        const unaryOperator: UnaryOperator = syntaxKindToUnaryOperator(prefixUnaryExpression.operator)
         const semantics: GeneratedExpressionSemantics = processExpression(prefixUnaryExpression.operand, symbolTable)
-        const operationVertex = new ir.PrefixUnaryOperationVertex(unaryOperation, type_utils.getExpressionType(prefixUnaryExpression));
+        const operationVertex = new ir.PrefixUnaryOperationVertex(unaryOperator, type_utils.getExpressionType(prefixUnaryExpression));
         const value = semantics.value;
         operationVertex.operand = value;
         semantics.addDataVertex(operationVertex);
@@ -521,11 +521,11 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     }
 
     function processBinaryExpression(binExpression: ts.BinaryExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
-        const binaryOperation: BinaryOperation = syntaxKindToBinaryOperation(binExpression.operatorToken.kind)
+        const binaryOperator: BinaryOperator = syntaxKindToBinaryOperator(binExpression.operatorToken.kind)
 
         const semantics = processExpression(binExpression.right, symbolTable)
 
-        if (binaryOperation == BinaryOperation.Assign) {
+        if (binaryOperator == BinaryOperator.Assign) {
             if (binExpression.left.kind == ts.SyntaxKind.Identifier) {
                 const identifier = ast.getIdentifierName(binExpression.left as ts.Identifier);
                 semantics.symbolTable.set(identifier, semantics.value);
@@ -540,7 +540,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             const leftSemantics = processExpression(binExpression.left, semantics.symbolTable)
             semantics.concatSemantics(leftSemantics);
             //const opVertex = new ir.BinaryOperationVertex(binaryOperation, semantics.value, valueSemantics.value);
-            const opVertex = new ir.BinaryOperationVertex(binaryOperation, type_utils.getExpressionType(binExpression));
+            const opVertex = new ir.BinaryOperationVertex(binaryOperator, type_utils.getExpressionType(binExpression));
             const leftValue = leftSemantics.value;
             opVertex.left = leftValue;
             const rightValue = semantics.value;
