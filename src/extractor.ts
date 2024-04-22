@@ -5,9 +5,8 @@ import * as ir from "graphir";
 
 import assert from 'assert';
 
-import { BinaryOperation, UnaryOperation } from "./types.js";
 import * as ast from './ts-ast.js'
-import { syntaxKindToBinaryOperation, syntaxKindToUnaryOperation } from "./mappings.js";
+import { syntaxKindToBinaryOperation, syntaxKindToUnaryOperation, UnaryOperation, BinaryOperation } from "./mappings.js";
 import { GeneratedExpressionSemantics, GeneratedStatementSemantics } from "./semantics.js";
 import { SymbolTable } from "./symbolTable.js";
 import * as type_utils from "./type_utils.js";
