@@ -375,32 +375,23 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processArrayLiteralExpression(arrayLiteralExp: ts.ArrayLiteralExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics: GeneratedExpressionSemantics = new GeneratedExpressionSemantics(symbolTable)
         const arrayVertex = new ir.AllocationVertex(type_utils.getArrayType());
+
+        let arraySymbol = semantics.symbolTable.get('Array');
+        if (!arraySymbol) {
+            arraySymbol = new ir.SymbolVertex('Array', undefined);
+            semantics.addDataVertex(arraySymbol);
+            semantics.symbolTable.set('Array', arraySymbol);
+        }
+        arrayVertex.callee = arraySymbol;
+        //TODO: add special case for array literals with one element
+        arrayLiteralExp.elements.forEach((element: ts.Expression) => {
+            const elementSemantics: GeneratedExpressionSemantics = processExpression(element, semantics.symbolTable);
+            semantics.concatSemantics(elementSemantics)
+            arrayVertex.pushArg(elementSemantics.value);
+
+        });
         semantics.concatControlVertex(arrayVertex)
         semantics.value = arrayVertex;
-
-        arrayLiteralExp.elements.forEach((element: ts.Expression, index: number) => {
-
-            // Creating store vertex
-            const storeVertex = new ir.StoreVertex();
-            storeVertex.object = arrayVertex;
-            semantics.concatControlVertex(storeVertex);
-
-            // Adding index vertex
-            const indexVertex = new ir.LiteralVertex(index, type_utils.getNumberType());
-            storeVertex.property = indexVertex;
-            semantics.addDataVertex(indexVertex);
-
-            // Generating element calculation flow
-            const elementSemantics: GeneratedExpressionSemantics = processExpression(element, semantics.symbolTable);
-            const elementValue = elementSemantics.value;
-            if (typeof elementValue !== 'string') {
-                storeVertex.value = elementValue;
-            }
-            semantics.concatSemantics(elementSemantics)
-
-            semantics.setLastControl(storeVertex)
-        });
-
         return semantics;
     }
 
