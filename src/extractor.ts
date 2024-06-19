@@ -121,9 +121,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
                     break
                 case ts.SyntaxKind.PropertyDeclaration:
                     continue
-                case ts.SyntaxKind.MethodDeclaration:
-                    memberSemantics = processMethodDeclaration(member as ts.MethodDeclaration, symbolTable)
-                    break
+                // case ts.SyntaxKind.MethodDeclaration:
+                //     memberSemantics = processMethodDeclaration(member as ts.MethodDeclaration, symbolTable)
+                //     break
                 default:
                     throw new Error('not implemented')
             }
@@ -158,32 +158,33 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         return semantics
     }
 
-    function processMethodDeclaration(methodDecl: ts.MethodDeclaration, symbolTable: SymbolTable): GeneratedStatementSemantics {
-        assert((methodDecl.parent as ts.ClassLikeDeclaration).name)
-        const className = (methodDecl.parent as ts.ClassLikeDeclaration).name
-        const methodName = `${className}::${ast.getIdentifierName((methodDecl as ts.MethodDeclaration).name)}`
+    // TODO: restore
+    // function processMethodDeclaration(methodDecl: ts.MethodDeclaration, symbolTable: SymbolTable): GeneratedStatementSemantics {
+    //     assert((methodDecl.parent as ts.ClassLikeDeclaration).name)
+    //     const className = (methodDecl.parent as ts.ClassLikeDeclaration).name
+    //     const methodName = `${className}::${ast.getIdentifierName((methodDecl as ts.MethodDeclaration).name)}`
 
-        const semantics = new GeneratedStatementSemantics(symbolTable)
-        const startVertex = new ir.StartVertex();
-        semantics.concatControlVertex(startVertex)
-        const symbolVertex = new ir.SymbolVertex(methodName, type_utils.getFunctionType(methodDecl), startVertex);
-        semantics.addDataVertex(symbolVertex);
+    //     const semantics = new GeneratedStatementSemantics(symbolTable)
+    //     const startVertex = new ir.StartVertex();
+    //     semantics.concatControlVertex(startVertex)
+    //     const symbolVertex = new ir.SymbolVertex(methodName, type_utils.getFunctionType(methodDecl), startVertex);
+    //     semantics.addDataVertex(symbolVertex);
 
-        const thisVertex = new ir.ParameterVertex(0, undefined); //TODO: add type of this
-        semantics.addDataVertex(thisVertex)
-        semantics.setVariable('this', thisVertex);
-        methodDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
-            const parameterName: string = parameter.name['escapedText'];
-            const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
-            semantics.addDataVertex(parameterVertex)
-            semantics.setVariable(parameterName, parameterVertex);
-        })
+    //     const thisVertex = new ir.ParameterVertex(0, undefined); //TODO: add type of this
+    //     semantics.addDataVertex(thisVertex)
+    //     semantics.setVariable('this', thisVertex);
+    //     methodDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
+    //         const parameterName: string = parameter.name['escapedText'];
+    //         const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
+    //         semantics.addDataVertex(parameterVertex)
+    //         semantics.setVariable(parameterName, parameterVertex);
+    //     })
 
-        assert(methodDecl.body)
-        semantics.concatSemantics(processBlock(methodDecl.body, symbolTable));
+    //     assert(methodDecl.body)
+    //     semantics.concatSemantics(processBlock(methodDecl.body, symbolTable));
 
-        return semantics
-    }
+    //     return semantics
+    // }
 
 
     function processVariableStatement(varStatement: ts.VariableStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
