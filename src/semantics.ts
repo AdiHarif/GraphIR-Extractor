@@ -90,7 +90,7 @@ export abstract class GeneratedSemantics {
     }
 
     public purge(): void {
-        const keys = [...this.symbolTable.keys()].filter(key => !(this.symbolTable.get(key) instanceof ir.SymbolVertex));
+        const keys = [...this.symbolTable.keys()].filter(key => !(this.symbolTable.get(key) instanceof ir.StaticSymbolVertex));
         keys.forEach(key => this.symbolTable.delete(key));
         this.firstControl = undefined;
         this.lastControl = undefined;
@@ -111,7 +111,7 @@ export class GeneratedExpressionSemantics extends GeneratedSemantics {
 
     public concatSemantics(other: GeneratedExpressionSemantics): void {
         super.concatSemantics(other);
-        if (other.value instanceof ir.SymbolVertex && this.symbolTable.has(other.value.name)) {
+        if (other.value instanceof ir.StaticSymbolVertex && this.symbolTable.has(other.value.name)) {
             other.value = this.symbolTable.get(other.value.name);
         }
     }

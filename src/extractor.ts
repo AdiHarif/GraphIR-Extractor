@@ -20,7 +20,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     sourceFile.statements.forEach(statement => {
         if (statement.kind == ts.SyntaxKind.FunctionDeclaration) {
             const name = ast.getIdentifierName((statement as ts.FunctionDeclaration).name);
-            const symbol = new ir.SymbolVertex(name, type_utils.getFunctionType(statement as ts.FunctionDeclaration));
+            const symbol = new ir.StaticSymbolVertex(name, type_utils.getFunctionType(statement as ts.FunctionDeclaration));
             semantics.addDataVertex(symbol);
             semantics.symbolTable.set(name, symbol);
         }
@@ -77,25 +77,26 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics = new GeneratedStatementSemantics(symbolTable);
         const funcName: string = funcDeclaration.name['escapedText'] as string;
         const startVertex = new ir.StartVertex();
-        let symbolVertex: ir.SymbolVertex;
+        let symbolVertex: ir.StaticSymbolVertex;
         if (!symbolTable.has(funcName)) {
-            symbolVertex = new ir.SymbolVertex(funcName, type_utils.getFunctionType(funcDeclaration), startVertex);
+            symbolVertex = new ir.StaticSymbolVertex(funcName, type_utils.getFunctionType(funcDeclaration), startVertex);
             semantics.symbolTable.set(funcName ,symbolVertex);
             semantics.addDataVertex(symbolVertex);
         }
         else {
-            symbolVertex = symbolTable.get(funcName) as ir.SymbolVertex;
+            symbolVertex = symbolTable.get(funcName) as ir.StaticSymbolVertex;
             symbolVertex.startVertex = startVertex;
         }
         semantics.concatControlVertex(startVertex);
 
-        const thisVertex = new ir.SymbolVertex('this', type_utils.getAnyType());
+        const thisVertex = new ir.StaticSymbolVertex('this', type_utils.getAnyType());
         semantics.addDataVertex(thisVertex);
         semantics.symbolTable.set('this', symbolVertex);
 
         funcDeclaration.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
             const parameterVertex = new ir.ParameterVertex(position, type_utils.getTypeAtLocation(parameter));
+            symbolVertex.addParameter(parameterVertex);
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex)
             parameterVertex.debugInfo.sourceNodes.push(parameter.name);
@@ -380,7 +381,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
         let arraySymbol = semantics.symbolTable.get('Array');
         if (!arraySymbol) {
-            arraySymbol = new ir.SymbolVertex('Array', undefined);
+            arraySymbol = new ir.StaticSymbolVertex('Array', undefined);
             semantics.addDataVertex(arraySymbol);
             semantics.symbolTable.set('Array', arraySymbol);
         }
@@ -581,7 +582,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const identifier: string = ast.getIdentifierName(identifierExpression)
         const semantics = new GeneratedExpressionSemantics(symbolTable);
         if (!symbolTable.has(identifier)) {
-            const symbolVertex = new ir.SymbolVertex(identifier, type_utils.getExpressionType(identifierExpression));
+            const symbolVertex = new ir.StaticSymbolVertex(identifier, type_utils.getExpressionType(identifierExpression)); // TODO: discriminate between static function identifiers and variables
             semantics.symbolTable.set(identifier, symbolVertex);
             semantics.addDataVertex(symbolVertex);
         }
