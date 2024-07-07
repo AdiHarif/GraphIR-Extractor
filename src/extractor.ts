@@ -244,6 +244,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const assignedVariables = ast.getAssignedVariables(whileStatement);
         const phiMap: Map<string, ir.PhiVertex> = new Map();
         assignedVariables.forEach((variable) => {
+            if (!semantics.symbolTable.has(variable)) {
+                return;
+            }
             const variableType = semantics.symbolTable.get(variable).declaredType;
             const phi = new ir.PhiVertex(variableType, merge, [{ value: semantics.symbolTable.get(variable), srcBranch: pass }]);
             phiMap.set(variable, phi);
