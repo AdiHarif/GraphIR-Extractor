@@ -556,7 +556,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const semantics = processExpression(propertyAccessExpression.expression, symbolTable)
         const propertyName = ast.getIdentifierName((propertyAccessExpression.name) as ts.Identifier)
         const loadVertex = new ir.LoadVertex(type_utils.getExpressionType(propertyAccessExpression));
-        loadVertex.property = new ir.LiteralVertex(propertyName, type_utils.getStringType());
+        loadVertex.property = new ir.StaticSymbolVertex(propertyName, type_utils.getExpressionType(propertyAccessExpression));
         semantics.addDataVertex(loadVertex.property);
         loadVertex.object = semantics.value;
         semantics.concatControlVertex(loadVertex);
