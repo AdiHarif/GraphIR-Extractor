@@ -10,7 +10,8 @@
     "build": "tsc",
     "watch:build": "tsc -w",
     "start": "node build/main.js",
-    "test": "jest"
+    "test": "jest",
+    "prepare": "npm run build"
   },
   "types": "build/main.d.ts",
   "keywords": [],
