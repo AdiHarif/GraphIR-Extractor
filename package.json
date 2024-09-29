@@ -7,7 +7,6 @@
     "test": "tests"
   },
   "scripts": {
-    "preinstall": "git submodule update --init && pushd submodules/graphir && npm install && npm run build",
     "build": "tsc",
     "watch:build": "tsc -w",
     "start": "node build/main.js",
