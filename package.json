@@ -18,7 +18,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "graphir": "file:submodules/graphir",
+    "graphir": "github:AdiHarif/GraphIR#dev",
     "typescript": "4.8.4",
     "yargs": "^17.7.2"
   },
