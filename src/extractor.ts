@@ -107,7 +107,12 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (!(semantics.getLastControl() instanceof ir.ReturnVertex)) {
             semantics.concatControlVertex(new ir.ReturnVertex());
         }
-        semantics.wrapSubgraph(type_utils.getTypeAtLocation(funcDeclaration));
+
+        const jsDocTags: {[key: string]: string} = {};
+        ts.getJSDocTags(funcDeclaration).forEach(tag => {
+            jsDocTags[tag.tagName.getText()] = tag.comment.toString();
+        });
+        semantics.wrapSubgraph(type_utils.getTypeAtLocation(funcDeclaration), jsDocTags);
         semantics.symbolTable.set(funcName ,symbolVertex);
         return semantics
     }

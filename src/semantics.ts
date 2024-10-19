@@ -227,9 +227,10 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         this.subgraphs.push(graph)
     }
 
-    public wrapSubgraph(functionType: ts.Type) {
+    public wrapSubgraph(functionType: ts.Type, jsDocTags: { [key: string]: string }): void {
         const graph = this.createGraph();
         graph.declaredType = functionType; //TODO: refactor this out of here
+        graph.jsDocTags = jsDocTags;
         this.addSubgraph(graph);
         this.purge();
     }
