@@ -112,7 +112,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         ts.getJSDocTags(funcDeclaration).forEach(tag => {
             jsDocTags[tag.tagName.getText()] = tag.comment.toString();
         });
-        semantics.wrapSubgraph(type_utils.getTypeAtLocation(funcDeclaration), jsDocTags);
+        semantics.wrapSubgraph(funcName, type_utils.getTypeAtLocation(funcDeclaration), jsDocTags);
         semantics.symbolTable.set(funcName ,symbolVertex);
         return semantics
     }
