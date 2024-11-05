@@ -64,6 +64,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.WhileStatement:
                 semantics = processWhileStatement(statement as ts.WhileStatement, symbolTable)
                 break
+            case ts.SyntaxKind.ForStatement:
+                semantics = processForStatement(statement as ts.ForStatement, symbolTable);
+                break;
             case ts.SyntaxKind.Block:
                 semantics = processBlock(statement as ts.Block, symbolTable);
                 break;
@@ -261,6 +264,55 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         semantics.concatSemantics(condSemantics);
         branch.condition = condSemantics.value;
         const bodySemantics = processStatement(whileStatement.statement, condSemantics.symbolTable);
+        const bodyEnd = new ir.BlockEndVertex();
+        bodySemantics.concatControlVertex(bodyEnd);
+        phiMap.forEach((phi, variable) => {
+            const value = bodySemantics.symbolTable.get(variable);
+            phi.addOperand({ value: value, srcBranch: bodyEnd });
+            bodySemantics.symbolTable.set(variable, phi);
+            bodySemantics.addDataVertex(phi);
+        });
+        const truePass = new ir.BlockBeginVertex();
+        branch.trueNext = truePass;
+        semantics.setLastControl(truePass);
+        semantics.concatSemantics(bodySemantics);
+        bodyEnd.next = merge;
+        const falsePass = new ir.BlockBeginVertex();
+        branch.falseNext = falsePass;
+        semantics.setLastControl(falsePass);
+        return semantics;
+    }
+
+    function processForStatement(forStatement: ts.ForStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
+        const semantics = new GeneratedStatementSemantics(symbolTable);
+        const pass = new ir.BlockEndVertex();
+        const merge = new ir.MergeVertex();
+        semantics.concatControlVertex(pass);
+        assert(ts.isVariableDeclarationList(forStatement.initializer), 'only VariableDeclarationList is supported as for loop initializer');
+        const initializerSemantics = processVariableDeclarationList(forStatement.initializer, semantics.symbolTable);
+        semantics.concatSemantics(initializerSemantics);
+        semantics.concatControlVertex(merge);
+        const branch = new ir.BranchVertex();
+        merge.branch = branch;
+        semantics.concatControlVertex(branch);
+        merge.next = branch;
+        const assignedVariables = ast.getAssignedVariables(forStatement);
+        const phiMap: Map<string, ir.PhiVertex> = new Map();
+        assignedVariables.forEach((variable) => {
+            if (!semantics.symbolTable.has(variable)) {
+                return;
+            }
+            const variableType = semantics.symbolTable.get(variable).declaredType;
+            const phi = new ir.PhiVertex(variableType, merge, [{ value: semantics.symbolTable.get(variable), srcBranch: pass }]);
+            phiMap.set(variable, phi);
+            semantics.symbolTable.set(variable, phi);
+        });
+        const condSemantics = processExpression(forStatement.condition, semantics.symbolTable);
+        semantics.concatSemantics(condSemantics);
+        branch.condition = condSemantics.value;
+        const bodySemantics = processStatement(forStatement.statement, condSemantics.symbolTable);
+        const incrementorSemantics = processExpression(forStatement.incrementor as ts.Expression, bodySemantics.symbolTable);
+        bodySemantics.concatSemantics(incrementorSemantics);
         const bodyEnd = new ir.BlockEndVertex();
         bodySemantics.concatControlVertex(bodyEnd);
         phiMap.forEach((phi, variable) => {
