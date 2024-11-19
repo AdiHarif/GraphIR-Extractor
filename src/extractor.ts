@@ -70,6 +70,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.Block:
                 semantics = processBlock(statement as ts.Block, symbolTable);
                 break;
+            case ts.SyntaxKind.ImportDeclaration:
+                semantics = new GeneratedStatementSemantics(symbolTable);
+                break;
             default:
                 throw new Error(`${ts.SyntaxKind[statement.kind]} is not supported`)
         }
