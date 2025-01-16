@@ -5,13 +5,17 @@ import ts from 'typescript'
 export enum UnaryOperator {
     Plus = '+',
     Minus = '-',
-    Not = '!'
+    Not = '!',
+    Increment = '++',
+    Decrement = '--',
 }
 
 const syntaxKindToUnaryOperatorMap: { [key in ts.SyntaxKind]?: UnaryOperator } = {
     [ts.SyntaxKind.PlusToken]: UnaryOperator.Plus,
     [ts.SyntaxKind.MinusToken]: UnaryOperator.Minus,
     [ts.SyntaxKind.ExclamationToken]: UnaryOperator.Not,
+    [ts.SyntaxKind.PlusPlusToken]: UnaryOperator.Increment,
+    [ts.SyntaxKind.MinusMinusToken]: UnaryOperator.Decrement,
 }
 
 export function syntaxKindToUnaryOperator(kind: ts.SyntaxKind): UnaryOperator {

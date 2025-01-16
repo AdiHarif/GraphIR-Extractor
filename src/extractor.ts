@@ -398,6 +398,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.PrefixUnaryExpression:
                 semantics = processPrefixUnaryExpression(expression as ts.PrefixUnaryExpression, symbolTable)
                 break
+            case ts.SyntaxKind.PostfixUnaryExpression:
+                semantics = processPostfixUnaryExpression(expression as ts.PostfixUnaryExpression, symbolTable)
+                break;
             case ts.SyntaxKind.BinaryExpression:
                 semantics = processBinaryExpression(expression as ts.BinaryExpression, symbolTable)
                 break
@@ -574,6 +577,27 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         operationVertex.operand = value;
         semantics.addDataVertex(operationVertex);
         semantics.value = operationVertex;
+        if (unaryOperator == UnaryOperator.Increment || unaryOperator == UnaryOperator.Decrement) {
+            assert(prefixUnaryExpression.operand.kind == ts.SyntaxKind.Identifier, 'only identifiers are supported for increment and decrement operators')
+            const id = prefixUnaryExpression.operand.getText();
+            semantics.symbolTable.set(id, operationVertex);
+        }
+        return semantics;
+    }
+
+    function processPostfixUnaryExpression(postfixUnaryExpression: ts.PostfixUnaryExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const unaryOperator: UnaryOperator = syntaxKindToUnaryOperator(postfixUnaryExpression.operator)
+        const semantics: GeneratedExpressionSemantics = processExpression(postfixUnaryExpression.operand, symbolTable)
+        const operationVertex = new ir.PostfixUnaryOperationVertex(unaryOperator, type_utils.getExpressionType(postfixUnaryExpression));
+        const value = semantics.value;
+        operationVertex.operand = value;
+        semantics.addDataVertex(operationVertex);
+        semantics.value = value;
+        if (unaryOperator == UnaryOperator.Increment || unaryOperator == UnaryOperator.Decrement) {
+            assert(postfixUnaryExpression.operand.kind == ts.SyntaxKind.Identifier, 'only identifiers are supported for increment and decrement operators')
+            const id = postfixUnaryExpression.operand.getText();
+            semantics.symbolTable.set(id, operationVertex);
+        }
         return semantics;
     }
 
