@@ -310,6 +310,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             phiMap.set(variable, phi);
             semantics.symbolTable.set(variable, phi);
         });
+        const truePass = new ir.BlockBeginVertex();
+        branch.trueNext = truePass;
+        semantics.setLastControl(truePass);
         const condSemantics = processExpression(forStatement.condition, semantics.symbolTable);
         semantics.concatSemantics(condSemantics);
         branch.condition = condSemantics.value;
@@ -324,9 +327,6 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             bodySemantics.symbolTable.set(variable, phi);
             bodySemantics.addDataVertex(phi);
         });
-        const truePass = new ir.BlockBeginVertex();
-        branch.trueNext = truePass;
-        semantics.setLastControl(truePass);
         semantics.concatSemantics(bodySemantics);
         bodyEnd.next = merge;
         const falsePass = new ir.BlockBeginVertex();
