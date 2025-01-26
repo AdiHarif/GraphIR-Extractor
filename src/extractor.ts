@@ -295,10 +295,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const initializerSemantics = processVariableDeclarationList(forStatement.initializer, semantics.symbolTable);
         semantics.concatSemantics(initializerSemantics);
         semantics.concatControlVertex(merge);
-        const branch = new ir.BranchVertex();
-        merge.branch = branch;
-        semantics.concatControlVertex(branch);
-        merge.next = branch;
+
         const assignedVariables = ast.getAssignedVariables(forStatement);
         const phiMap: Map<string, ir.PhiVertex> = new Map();
         assignedVariables.forEach((variable) => {
@@ -310,13 +307,19 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             phiMap.set(variable, phi);
             semantics.symbolTable.set(variable, phi);
         });
+
+        const condSemantics = processExpression(forStatement.condition, semantics.symbolTable);
+        semantics.concatSemantics(condSemantics);
+
+        const branch = new ir.BranchVertex();
+        merge.branch = branch;
+        semantics.concatControlVertex(branch);
+        branch.condition = condSemantics.value;
+
         const truePass = new ir.BlockBeginVertex();
         branch.trueNext = truePass;
         semantics.setLastControl(truePass);
-        const condSemantics = processExpression(forStatement.condition, semantics.symbolTable);
-        semantics.concatSemantics(condSemantics);
-        branch.condition = condSemantics.value;
-        const bodySemantics = processStatement(forStatement.statement, condSemantics.symbolTable);
+        const bodySemantics = processStatement(forStatement.statement, semantics.symbolTable);
         const incrementorSemantics = processExpression(forStatement.incrementor as ts.Expression, bodySemantics.symbolTable);
         bodySemantics.concatSemantics(incrementorSemantics);
         const bodyEnd = new ir.BlockEndVertex();
