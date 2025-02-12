@@ -131,6 +131,90 @@ export class GeneratedExpressionSemantics extends GeneratedSemantics {
             other.value = this.symbolTable.get(other.value.name);
         }
     }
+
+    static createConditionalSemantics(condSemantics: GeneratedExpressionSemantics, thenSemantics: GeneratedExpressionSemantics, elseSemantics: GeneratedExpressionSemantics): GeneratedExpressionSemantics {
+        const semantics = new GeneratedExpressionSemantics();
+        semantics.concatSemantics(condSemantics);
+
+        thenSemantics.wrapSemanticsAsBlock();
+        elseSemantics.wrapSemanticsAsBlock();
+
+        const branchVertex = new ir.BranchVertex(
+            condSemantics.value,
+            thenSemantics.getFirstControl() as ir.BlockBeginVertex,
+            elseSemantics.getFirstControl() as ir.BlockBeginVertex
+        );
+
+        semantics.concatControlVertex(branchVertex);
+
+        const mergeVertex = new ir.MergeVertex(branchVertex);
+
+        semantics.vertexList.push(...thenSemantics.vertexList);
+        semantics.vertexList.push(...elseSemantics.vertexList);
+
+
+        thenSemantics.symbolTable.forEach((value, key) => {
+            let altValue = elseSemantics.symbolTable.get(key);
+            if (!altValue) {
+                altValue = semantics.symbolTable.get(key);
+            }
+            if (altValue && altValue !== value) {
+                const altType = altValue.declaredType;
+                const phiVertex = new ir.PhiVertex(
+                    altType,
+                    mergeVertex,
+                    [
+                        { value: value as ir.DataVertex, srcBranch: thenSemantics.lastControl },
+                        { value: altValue as ir.DataVertex, srcBranch: elseSemantics.lastControl },
+                    ]);
+                semantics.symbolTable.set(key, phiVertex);
+                semantics.addDataVertex(phiVertex);
+            }
+            else {
+                semantics.symbolTable.set(key, value);
+            }
+        });
+
+        elseSemantics.symbolTable.forEach((value, key) => {
+            if (!thenSemantics.symbolTable.has(key)) {
+                if (semantics.symbolTable.has(key)) {
+                    const altValue = semantics.symbolTable.get(key);
+                    //TODO: support backpatch for phi vertices.
+                    const varType = altValue.declaredType;
+                    const phiVertex = new ir.PhiVertex(
+                        varType,
+                        mergeVertex,
+                        [
+                            { value: value as ir.DataVertex, srcBranch: elseSemantics.lastControl },
+                            { value: altValue as ir.DataVertex, srcBranch: thenSemantics.lastControl }
+                        ]);
+                    semantics.symbolTable.set(key, phiVertex);
+                    semantics.addDataVertex(phiVertex);
+                }
+                else {
+                    semantics.symbolTable.set(key, value);
+                }
+            }
+        });
+
+
+        (thenSemantics.lastControl as ir.BlockEndVertex).next = mergeVertex;
+        (elseSemantics.lastControl as ir.BlockEndVertex).next = mergeVertex;
+        semantics.setLastControl(mergeVertex);
+
+        const valueVertex = new ir.PhiVertex(
+            undefined,
+            mergeVertex,
+            [
+                { value: thenSemantics.value, srcBranch: thenSemantics.lastControl },
+                { value: elseSemantics.value, srcBranch: elseSemantics.lastControl }
+            ]
+        );
+        semantics.value = valueVertex;
+        semantics.addDataVertex(valueVertex);
+
+        return semantics;
+    }
 }
 
 export class GeneratedStatementSemantics extends GeneratedSemantics {

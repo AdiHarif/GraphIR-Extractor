@@ -434,12 +434,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.ObjectLiteralExpression:
                 semantics = processObjectLiteralExpression(expression as ts.ObjectLiteralExpression, symbolTable);
                 break
+            case ts.SyntaxKind.ConditionalExpression:
+                semantics = processConditionalExpression(expression as ts.ConditionalExpression, symbolTable);
+                break;
             //TODO: restore support of function expressions
             // case ts.SyntaxKind.FunctionExpression:
             //     semantics = processFunctionExpression(expression as ts.FunctionExpression);
             //     break
             default:
-                throw new Error(`not implemented`)
+                throw new Error(`Unsupported expression kind: ${ts.SyntaxKind[expression.kind]}`);
         }
         return semantics
     }
@@ -499,6 +502,14 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         });
 
         return semantics;
+    }
+
+    function processConditionalExpression(conditionalExpression: ts.ConditionalExpression, symbolTable: SymbolTable) {
+        const condSemantics = processExpression(conditionalExpression.condition, symbolTable);
+        const thenSemantics = processExpression(conditionalExpression.whenTrue, condSemantics.symbolTable);
+        const elseSemantics = processExpression(conditionalExpression.whenFalse, condSemantics.symbolTable);
+
+        return GeneratedExpressionSemantics.createConditionalSemantics(condSemantics, thenSemantics, elseSemantics)
     }
 
     //TODO: restore
