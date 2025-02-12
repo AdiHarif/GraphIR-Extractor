@@ -8,6 +8,7 @@ export enum UnaryOperator {
     Not = '!',
     Increment = '++',
     Decrement = '--',
+    BitwiseNot = '~',
 }
 
 const syntaxKindToUnaryOperatorMap: { [key in ts.SyntaxKind]?: UnaryOperator } = {
@@ -16,6 +17,7 @@ const syntaxKindToUnaryOperatorMap: { [key in ts.SyntaxKind]?: UnaryOperator } =
     [ts.SyntaxKind.ExclamationToken]: UnaryOperator.Not,
     [ts.SyntaxKind.PlusPlusToken]: UnaryOperator.Increment,
     [ts.SyntaxKind.MinusMinusToken]: UnaryOperator.Decrement,
+    [ts.SyntaxKind.TildeToken]: UnaryOperator.BitwiseNot,
 }
 
 export function syntaxKindToUnaryOperator(kind: ts.SyntaxKind): UnaryOperator {
@@ -45,7 +47,9 @@ export enum BinaryOperator {
     LeftShift = '<<',
     RightShift = '>>',
     UnsignedRightShift = '>>>',
-    BitwiseAnd = '&'
+    BitwiseAnd = '&',
+    BitwiseOr = '|',
+    BitwiseXor = '^',
 }
 
 const syntaxKindToBinaryOperatorMap: { [key in ts.SyntaxKind]?: BinaryOperator } = {
@@ -69,6 +73,8 @@ const syntaxKindToBinaryOperatorMap: { [key in ts.SyntaxKind]?: BinaryOperator }
     [ts.SyntaxKind.GreaterThanGreaterThanToken]: BinaryOperator.RightShift,
     [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken]: BinaryOperator.UnsignedRightShift,
     [ts.SyntaxKind.AmpersandToken]: BinaryOperator.BitwiseAnd,
+    [ts.SyntaxKind.BarToken]: BinaryOperator.BitwiseOr,
+    [ts.SyntaxKind.CaretToken]: BinaryOperator.BitwiseXor,
 }
 
 export function syntaxKindToBinaryOperator(kind: ts.SyntaxKind): BinaryOperator {
