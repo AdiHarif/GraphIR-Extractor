@@ -96,6 +96,22 @@ export abstract class GeneratedSemantics {
         this.lastControl = undefined;
         this.vertexList = [];
     }
+
+    protected wrapSemanticsAsBlock(): void {
+        const beginVertex = new ir.BlockBeginVertex();
+        const endVertex = new ir.BlockEndVertex();
+        if (this.firstControl) {
+            assert(this.lastControl);
+            beginVertex.next = this.firstControl as ir.NonInitialControlVertex;
+            (this.lastControl as ir.NonTerminalControlVertex).next = endVertex;
+        }
+        else {
+            beginVertex.next = endVertex;
+        }
+        this.firstControl = beginVertex;
+        this.lastControl = endVertex;
+        this.vertexList.push(beginVertex, endVertex);
+    }
 }
 
 export class GeneratedExpressionSemantics extends GeneratedSemantics {
@@ -121,22 +137,6 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
 
     private readonly subgraphs: Array<ir.Graph> = new Array<ir.Graph>()
 
-    private static wrapSemanticsAsBlock(semantics: GeneratedStatementSemantics): void {
-        const beginVertex = new ir.BlockBeginVertex();
-        const endVertex = new ir.BlockEndVertex();
-        if (semantics.firstControl) {
-            assert(semantics.lastControl);
-            beginVertex.next = semantics.firstControl as ir.NonInitialControlVertex;
-            (semantics.lastControl as ir.NonTerminalControlVertex).next = endVertex;
-        }
-        else {
-            beginVertex.next = endVertex;
-        }
-        semantics.firstControl = beginVertex;
-        semantics.lastControl = endVertex;
-        semantics.vertexList.push(beginVertex, endVertex);
-    }
-
     static createLoopSemantics(condSemantics: GeneratedExpressionSemantics, bodySemantics: GeneratedStatementSemantics): GeneratedStatementSemantics {
         throw new Error("Method not implemented.")
     }
@@ -145,13 +145,13 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         const semantics = new GeneratedStatementSemantics();
         semantics.concatSemantics(condSemantics);
 
-        this.wrapSemanticsAsBlock(thenSemantics);
+        thenSemantics.wrapSemanticsAsBlock();
 
         if (!elseSemantics) {
             elseSemantics = new GeneratedStatementSemantics();
         }
 
-        this.wrapSemanticsAsBlock(elseSemantics);
+        elseSemantics.wrapSemanticsAsBlock();
 
         const branchVertex = new ir.BranchVertex(
             condSemantics.value,
