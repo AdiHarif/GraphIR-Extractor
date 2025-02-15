@@ -97,7 +97,7 @@ export abstract class GeneratedSemantics {
         this.vertexList = [];
     }
 
-    protected wrapSemanticsAsBlock(): void {
+    public wrapSemanticsAsBlock(): void {
         const beginVertex = new ir.BlockBeginVertex();
         const endVertex = new ir.BlockEndVertex();
         if (this.firstControl) {

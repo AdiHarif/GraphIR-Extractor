@@ -73,6 +73,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.ImportDeclaration:
                 semantics = new GeneratedStatementSemantics(symbolTable);
                 break;
+            case ts.SyntaxKind.DoStatement:
+                semantics = processDoStatement(statement as ts.DoStatement, symbolTable);
+                break;
             default:
                 throw new Error(`${ts.SyntaxKind[statement.kind]} is not supported`)
         }
@@ -335,6 +338,52 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const falsePass = new ir.BlockBeginVertex();
         branch.falseNext = falsePass;
         semantics.setLastControl(falsePass);
+        return semantics;
+    }
+
+    function processDoStatement(doStatement: ts.DoStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
+        const semantics = new GeneratedStatementSemantics(symbolTable);
+
+        const preMerge = new ir.BlockEndVertex();
+        const merge = new ir.MergeVertex();
+        semantics.concatControlVertex(preMerge);
+        semantics.concatControlVertex(merge);
+
+        const bodySemantics = processStatement(doStatement.statement, someSemantics.symbolTable);
+        semantics.concatSemantics(bodySemantics);
+
+        const condSemantics = processExpression(doStatement.expression, someSemantics.symbolTable);
+        semantics.concatSemantics(condSemantics);
+
+        const branch = new ir.BranchVertex();
+        merge.branch = branch;
+        semantics.concatControlVertex(branch);
+        branch.condition = condSemantics.value;
+        branch.trueNext = merge;
+
+        const falsePass = new ir.BlockBeginVertex();
+        branch.falseNext = falsePass;
+        semantics.setLastControl(falsePass);
+
+        const assignedVariables = ast.getAssignedVariables(doStatement);
+        const phiMap: Map<string, ir.PhiVertex> = new Map();
+        assignedVariables.forEach((variable) => {
+            if (!semantics.symbolTable.has(variable)) {
+                return;
+            }
+            const variableType = semantics.symbolTable.get(variable).declaredType;
+            const phi = new ir.PhiVertex(variableType, merge, [{ value: semantics.symbolTable.get(variable), srcBranch: preMerge }]);
+            phiMap.set(variable, phi);
+            semantics.symbolTable.set(variable, phi);
+        });
+
+        phiMap.forEach((phi, variable) => {
+            const value = bodySemantics.symbolTable.get(variable);
+            phi.addOperand({ value: value, srcBranch: bodyEnd });
+            bodySemantics.symbolTable.set(variable, phi);
+            bodySemantics.addDataVertex(phi);
+        });
+
         return semantics;
     }
 
