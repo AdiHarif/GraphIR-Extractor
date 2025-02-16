@@ -674,7 +674,13 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
                 semantics.symbolTable.set(identifier, semantics.value);
             }
             else {
-                const leftSemantics = storeElementAccessExpression(binExpression.left as ts.ElementAccessExpression, semantics.value, semantics.symbolTable);
+                let leftSemantics: GeneratedExpressionSemantics;
+                if (binExpression.left.kind == ts.SyntaxKind.ElementAccessExpression) {
+                    leftSemantics = storeElementAccessExpression(binExpression.left as ts.ElementAccessExpression, semantics.value, semantics.symbolTable);
+                }
+                else {
+                    leftSemantics = storePropertyAccessExpression(binExpression.left as ts.PropertyAccessExpression, semantics.value, semantics.symbolTable);
+                }
                 semantics.concatSemantics(leftSemantics);
             }
             semantics.value.debugInfo.sourceNodes.push(binExpression.left);
@@ -740,11 +746,21 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         return semantics
     }
 
-    function storeElementAccessExpression(propertyAccessExpression: ts.ElementAccessExpression, value: ir.DataVertex, symbolTable: SymbolTable): GeneratedExpressionSemantics {
-        const semantics = processExpression(propertyAccessExpression.expression, symbolTable);
-        const elementSemantics = processExpression(propertyAccessExpression.argumentExpression, semantics.symbolTable);
+    function storeElementAccessExpression(elementAccessExpression: ts.ElementAccessExpression, value: ir.DataVertex, symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const semantics = processExpression(elementAccessExpression.expression, symbolTable);
+        const elementSemantics = processExpression(elementAccessExpression.argumentExpression, semantics.symbolTable);
         semantics.concatSemantics(elementSemantics);
         const storeVertex = new ir.StoreVertex(semantics.value, elementSemantics.value, value);
+        semantics.concatControlVertex(storeVertex);
+        return semantics;
+    }
+
+    function storePropertyAccessExpression(propertyAccessExpression: ts.PropertyAccessExpression, value: ir.DataVertex, symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const semantics = processExpression(propertyAccessExpression.expression, symbolTable);
+        const name = ast.getIdentifierName(propertyAccessExpression.name);
+        const nameVertex = new ir.StaticSymbolVertex(name, undefined);
+        semantics.addDataVertex(nameVertex);
+        const storeVertex = new ir.StoreVertex(semantics.value, nameVertex, value);
         semantics.concatControlVertex(storeVertex);
         return semantics;
     }
