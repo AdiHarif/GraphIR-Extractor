@@ -585,7 +585,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     // }
 
     function processThisNode(symbolTable: SymbolTable): GeneratedExpressionSemantics {
-        const semantics = new GeneratedExpressionSemantics()
+        const semantics = new GeneratedExpressionSemantics(symbolTable);
         semantics.value = symbolTable.get('this');
         return semantics
     }
