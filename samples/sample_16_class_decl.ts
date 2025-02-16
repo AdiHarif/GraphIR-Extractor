@@ -24,14 +24,14 @@ b.c = 4;
 
 sub(b.d);
 
-// class A {
-//     public b: B;
+class A {
+    public b: B;
 
-//     public constructor() {
-//         this.b = new B();
-//     }
-// }
+    public constructor() {
+        this.b = new B();
+    }
+}
 
-// let a: A = new A();
+let a: A = new A();
 
-// a.b.c = 4;
+a.b.c = 4;

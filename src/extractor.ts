@@ -131,14 +131,14 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         for (const member of classDeclaration.members) {
             let memberSemantics: GeneratedStatementSemantics;
             switch (member.kind) {
-                // case ts.SyntaxKind.Constructor:
-                //     memberSemantics = processConstructorDeclaration(member as ts.ConstructorDeclaration, symbolTable)
-                //     break
+                case ts.SyntaxKind.Constructor:
+                    memberSemantics = processConstructorDeclaration(member as ts.ConstructorDeclaration, symbolTable)
+                    break
                 case ts.SyntaxKind.PropertyDeclaration:
                     continue
-                // case ts.SyntaxKind.MethodDeclaration:
-                //     memberSemantics = processMethodDeclaration(member as ts.MethodDeclaration, symbolTable)
-                //     break
+                case ts.SyntaxKind.MethodDeclaration:
+                    memberSemantics = processMethodDeclaration(member as ts.MethodDeclaration, symbolTable)
+                    break
                 default:
                     throw new Error('not implemented')
             }
@@ -147,60 +147,60 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         return semantics
     }
 
-    // TODO: restore
-    // function processConstructorDeclaration(constructorDecl: ts.ConstructorDeclaration, symbolTable: SymbolTable): GeneratedStatementSemantics {
-    //     assert((constructorDecl.parent as ts.ClassLikeDeclaration).name)
-    //     const className = (constructorDecl.parent as ts.ClassLikeDeclaration).name
+    function processConstructorDeclaration(constructorDecl: ts.ConstructorDeclaration, symbolTable: SymbolTable): GeneratedStatementSemantics {
+        assert((constructorDecl.parent as ts.ClassLikeDeclaration).name)
+        const className = (constructorDecl.parent as ts.ClassLikeDeclaration).name.getText();
 
-    //     const semantics = new GeneratedStatementSemantics(symbolTable);
-    //     const startVertex = new ir.StartVertex();
-    //     semantics.concatControlVertex(startVertex)
-    //     const symbolVertex = new ir.SymbolVertex(`${className}::constructor`, type_utils.getFunctionType(constructorDecl), startVertex);
-    //     semantics.addDataVertex(symbolVertex);
+        const semantics = new GeneratedStatementSemantics(symbolTable);
+        const startVertex = new ir.StartVertex();
 
-    //     const thisVertex = new ir.ParameterVertex(0, undefined); //TODO: add type of this
-    //     semantics.addDataVertex(thisVertex)
-    //     semantics.setVariable('this', thisVertex);
-    //     constructorDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
-    //         const parameterName: string = parameter.name['escapedText'];
-    //         const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
-    //         semantics.addDataVertex(parameterVertex)
-    //         semantics.setVariable(parameterName, parameterVertex)
-    //     })
+        semantics.concatControlVertex(startVertex)
+        const symbolVertex = new ir.StaticSymbolVertex(`${className}::constructor`, type_utils.getFunctionType(constructorDecl), startVertex);
+        semantics.addDataVertex(symbolVertex);
 
-    //     assert(constructorDecl.body)
-    //     semantics.concatSemantics(processBlock(constructorDecl.body, semantics.symbolTable))
+        const thisVertex = new ir.ParameterVertex(0, undefined);
+        semantics.addDataVertex(thisVertex)
+        semantics.setVariable('this', thisVertex);
+        constructorDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
+            const parameterName: string = parameter.name['escapedText'];
+            const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
+            semantics.addDataVertex(parameterVertex)
+            semantics.setVariable(parameterName, parameterVertex)
+        })
 
-    //     return semantics
-    // }
+        assert(constructorDecl.body)
+        semantics.concatSemantics(processBlock(constructorDecl.body, semantics.symbolTable))
 
-    // TODO: restore
-    // function processMethodDeclaration(methodDecl: ts.MethodDeclaration, symbolTable: SymbolTable): GeneratedStatementSemantics {
-    //     assert((methodDecl.parent as ts.ClassLikeDeclaration).name)
-    //     const className = (methodDecl.parent as ts.ClassLikeDeclaration).name
-    //     const methodName = `${className}::${ast.getIdentifierName((methodDecl as ts.MethodDeclaration).name)}`
+        return semantics
+    }
 
-    //     const semantics = new GeneratedStatementSemantics(symbolTable)
-    //     const startVertex = new ir.StartVertex();
-    //     semantics.concatControlVertex(startVertex)
-    //     const symbolVertex = new ir.SymbolVertex(methodName, type_utils.getFunctionType(methodDecl), startVertex);
-    //     semantics.addDataVertex(symbolVertex);
 
-    //     const thisVertex = new ir.ParameterVertex(0, undefined); //TODO: add type of this
-    //     semantics.addDataVertex(thisVertex)
-    //     semantics.setVariable('this', thisVertex);
-    //     methodDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
-    //         const parameterName: string = parameter.name['escapedText'];
-    //         const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
-    //         semantics.addDataVertex(parameterVertex)
-    //         semantics.setVariable(parameterName, parameterVertex);
-    //     })
+    function processMethodDeclaration(methodDecl: ts.MethodDeclaration, symbolTable: SymbolTable): GeneratedStatementSemantics {
+        assert((methodDecl.parent as ts.ClassLikeDeclaration).name)
+        const className = (methodDecl.parent as ts.ClassLikeDeclaration).name.getText();
+        const methodName = `${className}::${ast.getIdentifierName((methodDecl as ts.MethodDeclaration).name)}`
 
-    //     assert(methodDecl.body)
-    //     semantics.concatSemantics(processBlock(methodDecl.body, symbolTable));
+        const semantics = new GeneratedStatementSemantics(symbolTable)
+        const startVertex = new ir.StartVertex();
+        semantics.concatControlVertex(startVertex)
+        const symbolVertex = new ir.StaticSymbolVertex(methodName, type_utils.getFunctionType(methodDecl), startVertex);
+        semantics.addDataVertex(symbolVertex);
 
-    //     return semantics
-    // }
+        const thisVertex = new ir.ParameterVertex(0, undefined);
+        semantics.addDataVertex(thisVertex)
+        semantics.setVariable('this', thisVertex);
+        methodDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
+            const parameterName: string = parameter.name['escapedText'];
+            const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
+            semantics.addDataVertex(parameterVertex)
+            semantics.setVariable(parameterName, parameterVertex);
+        })
+
+        assert(methodDecl.body)
+        semantics.concatSemantics(processBlock(methodDecl.body, semantics.symbolTable));
+
+        return semantics
+    }
 
 
     function processVariableStatement(varStatement: ts.VariableStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
