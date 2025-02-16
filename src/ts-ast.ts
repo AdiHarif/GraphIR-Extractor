@@ -31,5 +31,11 @@ export function getAssignedVariables(root: ts.Node): Set<string> {
         const name = getIdentifierName((root as ts.BinaryExpression).left as ts.Identifier);
         assignedVariables.add(name);
     }
+    if ((root.kind == ts.SyntaxKind.PostfixUnaryExpression || root.kind == ts.SyntaxKind.PrefixUnaryExpression) &&
+        (root as any).operator == ts.SyntaxKind.PlusPlusToken || (root as any).operator == ts.SyntaxKind.MinusMinusToken) {
+
+        const name = getIdentifierName((root as any).operand);
+        assignedVariables.add(name);
+    }
     return assignedVariables;
 }
