@@ -76,6 +76,12 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.DoStatement:
                 semantics = processDoStatement(statement as ts.DoStatement, symbolTable);
                 break;
+            case ts.SyntaxKind.ContinueStatement:
+                semantics = processContinueStatement(statement as ts.ContinueStatement, symbolTable);
+                break;
+            case ts.SyntaxKind.BreakStatement:
+                semantics = processBreakStatement(statement as ts.BreakStatement, symbolTable);
+                break;
             default:
                 throw new Error(`${ts.SyntaxKind[statement.kind]} is not supported`)
         }
@@ -282,10 +288,13 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         branch.trueNext = truePass;
         semantics.setLastControl(truePass);
         semantics.concatSemantics(bodySemantics);
+        semantics.patchContinueList(merge);
         bodyEnd.next = merge;
         const falsePass = new ir.BlockBeginVertex();
         branch.falseNext = falsePass;
         semantics.setLastControl(falsePass);
+        semantics.patchBreakList();
+
         return semantics;
     }
 
@@ -338,6 +347,10 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const falsePass = new ir.BlockBeginVertex();
         branch.falseNext = falsePass;
         semantics.setLastControl(falsePass);
+
+        semantics.patchContinueList(merge);
+        semantics.patchBreakList();
+
         return semantics;
     }
 
@@ -383,6 +396,22 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const falsePass = new ir.BlockBeginVertex();
         branch.falseNext = falsePass;
         semantics.setLastControl(falsePass);
+
+        semantics.patchContinueList(merge);
+        semantics.patchBreakList();
+
+        return semantics;
+    }
+
+    function processContinueStatement(continueStatement: ts.ContinueStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
+        const semantics = new GeneratedStatementSemantics(symbolTable);
+        semantics.addContinueVertex();
+        return semantics;
+    }
+
+    function processBreakStatement(breakStatement: ts.BreakStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
+        const semantics = new GeneratedStatementSemantics(symbolTable);
+        semantics.addBreakVertex();
         return semantics;
     }
 

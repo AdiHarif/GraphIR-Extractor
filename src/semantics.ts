@@ -221,6 +221,9 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
 
     private readonly subgraphs: Array<ir.Graph> = new Array<ir.Graph>()
 
+    private continueList: Array<[ir.PassVertex, SymbolTable]> = new Array();
+    private breakList: Array<[ir.PassVertex, SymbolTable]> = new Array();
+
     static createLoopSemantics(condSemantics: GeneratedExpressionSemantics, bodySemantics: GeneratedStatementSemantics): GeneratedStatementSemantics {
         throw new Error("Method not implemented.")
     }
@@ -250,6 +253,10 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         semantics.vertexList.push(...thenSemantics.vertexList);
         semantics.vertexList.push(...elseSemantics.vertexList);
 
+        semantics.continueList.push(...thenSemantics.continueList);
+        semantics.continueList.push(...elseSemantics.continueList);
+        semantics.breakList.push(...thenSemantics.breakList);
+        semantics.breakList.push(...elseSemantics.breakList);
 
         thenSemantics.symbolTable.forEach((value, key) => {
             let altValue = elseSemantics.symbolTable.get(key);
@@ -330,7 +337,79 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
     public concatSemantics(other: GeneratedSemantics): void {
         if (other instanceof GeneratedStatementSemantics) {
             this.subgraphs.push(...other.subgraphs);
+            this.continueList.push(...other.continueList);
+            this.breakList.push(...other.breakList);
         }
+
         super.concatSemantics(other);
     }
+
+    public addContinueVertex(): void {
+        const vertex = new ir.PassVertex();
+        this.continueList.push([vertex, this.symbolTable.clone()]);
+        this.concatControlVertex(vertex);
+    }
+
+    public addBreakVertex(): void {
+        const vertex = new ir.PassVertex();
+        this.breakList.push([vertex, this.symbolTable.clone()]);
+        this.concatControlVertex(vertex);
+    }
+
+    public patchContinueList(mergeVertex: ir.MergeVertex): void {
+        this.continueList.forEach(([continuePass, continueSymbolTable]) => {
+            const blockEnd = new ir.BlockEndVertex();
+            this.vertexList.push(blockEnd);
+            continuePass.next = blockEnd;
+            blockEnd.next = mergeVertex;
+            this.symbolTable.forEach((value, key) => {
+                if (mergeVertex.phiVertices.some(phi => phi === value)) {
+                    (value as ir.PhiVertex).addOperand({ value: continueSymbolTable.get(key), srcBranch: blockEnd });
+                }
+            });
+        });
+        this.continueList = [];
+    }
+
+    public patchBreakList() {
+        if (this.breakList.length == 0) {
+            return;
+        }
+
+        assert(this.lastControl instanceof ir.BlockBeginVertex);
+        const preMerge = new ir.BlockEndVertex();
+        this.concatControlVertex(preMerge);
+        const mergeVertex = new ir.MergeVertex();
+        this.concatControlVertex(mergeVertex);
+        preMerge.next = mergeVertex;
+        this.breakList.forEach(([breakPass, breakSymbolTable]) => {
+            const blockEnd = new ir.BlockEndVertex();
+            this.vertexList.push(blockEnd);
+            breakPass.next = blockEnd;
+            blockEnd.next = mergeVertex;
+            breakSymbolTable.forEach((value, key) => {
+                if (mergeVertex.phiVertices.some(phi => phi === value)) {
+                    (value as ir.PhiVertex).addOperand({ value: breakSymbolTable.get(key), srcBranch: blockEnd });
+                }
+                else if (this.symbolTable.has(key) && this.symbolTable.get(key) !== value) {
+                    const altValue = this.symbolTable.get(key);
+                    const phiVertex = new ir.PhiVertex(
+                        undefined,
+                        mergeVertex,
+                        [
+                            { value: value as ir.DataVertex, srcBranch: blockEnd },
+                            { value: altValue as ir.DataVertex, srcBranch: preMerge }
+                        ]);
+                    this.symbolTable.set(key, phiVertex);
+                    this.addDataVertex(phiVertex);
+                }
+                else {
+                    this.symbolTable.set(key, value);
+                }
+            });
+        });
+
+        this.concatControlVertex(new ir.BlockBeginVertex());
+    }
+
 }

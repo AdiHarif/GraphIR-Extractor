@@ -1,21 +1,33 @@
-function add() {
-    return 0;
+
+function print(i: number) {
 }
 
-function sub() {
-    return 0;
-}
-
-let x = 5;
-
-while (true) {
-    if (x > 0) {
-        continue;
+function foo() {
+    let i = 0;
+    while (true) {
+        print(i);
+        i = 1;
+        if (i > 10) {
+            i = 2;
+            continue;
+        }
+        print(i);
+        i = 3;
     }
-    if (x < 7) {
-        break;
-    }
-    add();
+    print(i);
 }
 
-sub();
+function bar() {
+    let i = 0;
+    while (true) {
+        print(i);
+        i = 1;
+        if (i > 10) {
+            i = 2;
+            break;
+        }
+        print(i);
+        i = 3;
+    }
+    print(i);
+}
