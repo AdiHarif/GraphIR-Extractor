@@ -26,9 +26,31 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         }
     });
 
+    const globalVariables = new Set<string>();
+    const globalsVertex = new ir.StaticSymbolVertex('_globals', undefined);
+    semantics.addDataVertex(globalsVertex);
+
+
     sourceFile.statements.forEach(statement => {
-        const statementSemantics = processStatement(statement, semantics.symbolTable)
-        semantics.concatSemantics(statementSemantics)
+        if (statement.kind == ts.SyntaxKind.VariableStatement) {
+            const variableStatement = statement as ts.VariableStatement;
+            variableStatement.declarationList.declarations.forEach(declaration => {
+                const identifier = declaration.name.getText();
+                globalVariables.add(identifier);
+                if (declaration.initializer) {
+                    const valueSemantics = processExpression(declaration.initializer, semantics.symbolTable);
+                    semantics.concatSemantics(valueSemantics);
+                    const propertyVertex = new ir.StaticSymbolVertex(identifier, undefined);
+                    semantics.addDataVertex(propertyVertex);
+                    const storeVertex = new ir.StoreVertex(globalsVertex, propertyVertex, valueSemantics.value);
+                    semantics.concatControlVertex(storeVertex);
+                }
+            });
+        }
+        else {
+            const statementSemantics = processStatement(statement, semantics.symbolTable)
+            semantics.concatSemantics(statementSemantics)
+        }
     })
     semantics.concatControlVertex(new ir.ReturnVertex());
 
@@ -257,10 +279,6 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const merge = new ir.MergeVertex();
         semantics.concatControlVertex(pass);
         semantics.concatControlVertex(merge);
-        const branch = new ir.BranchVertex();
-        merge.branch = branch;
-        semantics.concatControlVertex(branch);
-        merge.next = branch;
         const assignedVariables = ast.getAssignedVariables(whileStatement);
         const phiMap: Map<string, ir.PhiVertex> = new Map();
         assignedVariables.forEach((variable) => {
@@ -274,6 +292,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         });
         const condSemantics = processExpression(whileStatement.expression, semantics.symbolTable);
         semantics.concatSemantics(condSemantics);
+        const branch = new ir.BranchVertex();
+        merge.branch = branch;
+        semantics.concatControlVertex(branch);
         branch.condition = condSemantics.value;
         const bodySemantics = processStatement(whileStatement.statement, condSemantics.symbolTable);
         const bodyEnd = new ir.BlockEndVertex();
@@ -361,10 +382,6 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const merge = new ir.MergeVertex();
         semantics.concatControlVertex(pass);
         semantics.concatControlVertex(merge);
-        const branch = new ir.BranchVertex();
-        merge.branch = branch;
-        semantics.concatControlVertex(branch);
-        merge.next = branch;
         const assignedVariables = ast.getAssignedVariables(doStatement);
         const phiMap: Map<string, ir.PhiVertex> = new Map();
         assignedVariables.forEach((variable) => {
@@ -378,6 +395,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         });
         const condSemantics = processExpression(doStatement.expression, semantics.symbolTable);
         semantics.concatSemantics(condSemantics);
+        const branch = new ir.BranchVertex();
+        merge.branch = branch;
+        semantics.concatControlVertex(branch);
         branch.condition = condSemantics.value;
         const bodySemantics = processStatement(doStatement.statement, condSemantics.symbolTable);
         const bodyEnd = new ir.BlockEndVertex();
@@ -671,7 +691,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (unaryOperator == UnaryOperator.Increment || unaryOperator == UnaryOperator.Decrement) {
             assert(prefixUnaryExpression.operand.kind == ts.SyntaxKind.Identifier, 'only identifiers are supported for increment and decrement operators')
             const id = prefixUnaryExpression.operand.getText();
-            semantics.symbolTable.set(id, operationVertex);
+            if (globalVariables.has(id)) {
+                const propertyVertex = new ir.StaticSymbolVertex(id, undefined);
+                const storeVertex = new ir.StoreVertex(globalsVertex, propertyVertex, operationVertex);
+                semantics.concatControlVertex(storeVertex);
+                semantics.addDataVertex(propertyVertex);
+            }
+            else{
+                semantics.symbolTable.set(id, operationVertex);
+            }
         }
         return semantics;
     }
@@ -687,7 +715,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (unaryOperator == UnaryOperator.Increment || unaryOperator == UnaryOperator.Decrement) {
             assert(postfixUnaryExpression.operand.kind == ts.SyntaxKind.Identifier, 'only identifiers are supported for increment and decrement operators')
             const id = postfixUnaryExpression.operand.getText();
-            semantics.symbolTable.set(id, operationVertex);
+            if (globalVariables.has(id)) {
+                const propertyVertex = new ir.StaticSymbolVertex(id, undefined);
+                const storeVertex = new ir.StoreVertex(globalsVertex, propertyVertex, operationVertex);
+                semantics.concatControlVertex(storeVertex);
+                semantics.addDataVertex(propertyVertex);
+            }
+            else {
+                semantics.symbolTable.set(id, operationVertex);
+            }
         }
         return semantics;
     }
@@ -700,7 +736,17 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         if (binaryOperator == BinaryOperator.Assign) {
             if (binExpression.left.kind == ts.SyntaxKind.Identifier) {
                 const identifier = ast.getIdentifierName(binExpression.left as ts.Identifier);
-                semantics.symbolTable.set(identifier, semantics.value);
+                if (semantics.symbolTable.has(identifier)) {
+                    semantics.symbolTable.set(identifier, semantics.value);
+                }
+                else {
+                    assert(globalVariables.has(identifier));
+                    const varSymbol = new ir.StaticSymbolVertex(identifier, undefined);
+                    const storeVertex = new ir.StoreVertex(globalsVertex, varSymbol, semantics.value);
+                    semantics.concatControlVertex(storeVertex);
+                    semantics.addDataVertex(storeVertex);
+                    semantics.addDataVertex(varSymbol);
+                }
             }
             else {
                 let leftSemantics: GeneratedExpressionSemantics;
@@ -765,12 +811,22 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processIdentifierExpression(identifierExpression: ts.Identifier, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const identifier: string = ast.getIdentifierName(identifierExpression)
         const semantics = new GeneratedExpressionSemantics(symbolTable);
-        if (!symbolTable.has(identifier)) {
+        if (globalVariables.has(identifier)) {
+            const propertyVertex = new ir.StaticSymbolVertex(identifier, undefined);
+            const loadVertex = new ir.LoadVertex(undefined, globalsVertex, propertyVertex);
+            semantics.addDataVertex(propertyVertex);
+            semantics.concatControlVertex(loadVertex);
+            semantics.value = loadVertex;
+        }
+        else if (!symbolTable.has(identifier)) {
             const symbolVertex = new ir.StaticSymbolVertex(identifier, type_utils.getExpressionType(identifierExpression)); // TODO: discriminate between static function identifiers and variables
             semantics.symbolTable.set(identifier, symbolVertex);
             semantics.addDataVertex(symbolVertex);
         }
-        semantics.value = semantics.symbolTable.get(identifier);
+
+        if (!semantics.value) {
+            semantics.value = semantics.symbolTable.get(identifier);
+        }
         semantics.value.debugInfo.sourceNodes.push(identifierExpression);
         return semantics
     }
