@@ -473,6 +473,11 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             semantics.setVariable(varName, initSemantics.value)
             initSemantics.value.debugInfo.sourceNodes.push(varDecl.name)
         }
+        else {
+            const valueVertex = new ir.LiteralVertex(undefined, undefined);
+            semantics.addDataVertex(valueVertex);
+            semantics.setVariable(varName, valueVertex);
+        }
 
         return semantics
     }
