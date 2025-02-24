@@ -104,6 +104,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.BreakStatement:
                 semantics = processBreakStatement(statement as ts.BreakStatement, symbolTable);
                 break;
+            case ts.SyntaxKind.SwitchStatement:
+                semantics = processSwitchStatement(statement as ts.SwitchStatement, symbolTable);
+                break;
             default:
                 throw new Error(`${ts.SyntaxKind[statement.kind]} is not supported`)
         }
@@ -418,6 +421,61 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         semantics.setLastControl(falsePass);
 
         semantics.patchContinueList(merge);
+        semantics.patchBreakList();
+
+        return semantics;
+    }
+
+    function processSwitchStatement(switchStatement: ts.SwitchStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
+        const semantics = new GeneratedStatementSemantics(symbolTable);
+        const switchExpressionSemantics = processExpression(switchStatement.expression, symbolTable);
+        semantics.concatSemantics(switchExpressionSemantics);
+
+        let nextBegin = new ir.BlockBeginVertex();
+        switchStatement.caseBlock.clauses.forEach((clause) => {
+            assert(clause.statements[clause.statements.length - 1].kind == ts.SyntaxKind.BreakStatement, 'only break statements are supported as last statement in case clause');
+
+            let cond: ir.DataVertex;
+            if (clause.kind == ts.SyntaxKind.CaseClause) {
+
+                const branch = new ir.BranchVertex();
+                semantics.concatControlVertex(branch);
+                const caseClause = clause as ts.CaseClause;
+                const condValue = processExpression(caseClause.expression, switchExpressionSemantics.symbolTable);
+                condValue.symbolTable.clear();
+                semantics.concatSemantics(condValue);
+
+                cond = new ir.BinaryOperationVertex("==", undefined, switchExpressionSemantics.value, condValue.value);
+                branch.condition = cond;
+                semantics.addDataVertex(cond);
+
+                const trueBegin = new ir.BlockBeginVertex();
+                branch.trueNext = trueBegin;
+                semantics.setLastControl(trueBegin);
+
+                nextBegin = new ir.BlockBeginVertex();
+                branch.falseNext = nextBegin;
+            }
+            else {
+                assert(clause.kind == ts.SyntaxKind.DefaultClause);
+            }
+
+            const clauseSemantics = new GeneratedStatementSemantics(switchExpressionSemantics.symbolTable);
+            clause.statements.forEach((statement) => {
+                if (clause.kind == ts.SyntaxKind.DefaultClause && statement.kind == ts.SyntaxKind.BreakStatement) {
+                    return;
+                }
+                clauseSemantics.concatSemantics(processStatement(statement, clauseSemantics.symbolTable));
+            });
+
+            if (clause.kind == ts.SyntaxKind.CaseClause) {
+                clauseSemantics.symbolTable.clear();
+            }
+            semantics.concatSemantics(clauseSemantics);
+
+            semantics.setLastControl(nextBegin);
+        });
+
         semantics.patchBreakList();
 
         return semantics;

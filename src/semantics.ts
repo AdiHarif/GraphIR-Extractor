@@ -393,15 +393,20 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
                 }
                 else if (this.symbolTable.has(key) && this.symbolTable.get(key) !== value) {
                     const altValue = this.symbolTable.get(key);
-                    const phiVertex = new ir.PhiVertex(
-                        undefined,
-                        mergeVertex,
-                        [
-                            { value: value as ir.DataVertex, srcBranch: blockEnd },
-                            { value: altValue as ir.DataVertex, srcBranch: preMerge }
-                        ]);
-                    this.symbolTable.set(key, phiVertex);
-                    this.addDataVertex(phiVertex);
+                    if (altValue instanceof ir.PhiVertex && altValue.merge == mergeVertex) {
+                        altValue.addOperand({ value, srcBranch: blockEnd });
+                    }
+                    else {
+                        const phiVertex = new ir.PhiVertex(
+                            undefined,
+                            mergeVertex,
+                            [
+                                { value: value as ir.DataVertex, srcBranch: blockEnd },
+                                { value: altValue as ir.DataVertex, srcBranch: preMerge }
+                            ]);
+                        this.symbolTable.set(key, phiVertex);
+                        this.addDataVertex(phiVertex);
+                    }
                 }
                 else {
                     this.symbolTable.set(key, value);
