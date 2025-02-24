@@ -12,6 +12,7 @@ export abstract class GeneratedSemantics {
     public readonly symbolTable: SymbolTable = new SymbolTable()
     protected firstControl?: ir.ControlVertex
     protected lastControl?: ir.ControlVertex
+    protected subgraphs: Array<ir.Graph> = new Array<ir.Graph>()
 
     constructor(symbolTable?: SymbolTable) {
         if (symbolTable) {
@@ -39,6 +40,8 @@ export abstract class GeneratedSemantics {
                 this.vertexList.push(vertex);
             }
         });
+
+        this.subgraphs.push(...other.subgraphs);
     }
 
     public setLastControl(vertex: ir.ControlVertex): void {
@@ -111,6 +114,10 @@ export abstract class GeneratedSemantics {
         this.firstControl = beginVertex;
         this.lastControl = endVertex;
         this.vertexList.push(beginVertex, endVertex);
+    }
+
+    public addSubgraph(graph: ir.Graph): void {
+        this.subgraphs.push(graph);
     }
 }
 
@@ -219,8 +226,6 @@ export class GeneratedExpressionSemantics extends GeneratedSemantics {
 
 export class GeneratedStatementSemantics extends GeneratedSemantics {
 
-    private readonly subgraphs: Array<ir.Graph> = new Array<ir.Graph>()
-
     private continueList: Array<[ir.PassVertex, SymbolTable]> = new Array();
     private breakList: Array<[ir.PassVertex, SymbolTable]> = new Array();
 
@@ -314,16 +319,12 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
         this.retList.push(vertex)
     }
 
-    public addSubgraph(graph: ir.Graph): void {
-        this.subgraphs.push(graph)
-    }
-
     public wrapSubgraph(functionName: string, functionType: ts.Type, jsDocTags: { [key: string]: string }): void {
         const graph = this.createGraph();
         graph.name = functionName;
         graph.declaredType = functionType; //TODO: refactor this out of here
         graph.jsDocTags = jsDocTags;
-        this.addSubgraph(graph);
+        this.subgraphs = [graph];
         this.purge();
     }
 
@@ -336,7 +337,6 @@ export class GeneratedStatementSemantics extends GeneratedSemantics {
 
     public concatSemantics(other: GeneratedSemantics): void {
         if (other instanceof GeneratedStatementSemantics) {
-            this.subgraphs.push(...other.subgraphs);
             this.continueList.push(...other.continueList);
             this.breakList.push(...other.breakList);
         }

@@ -597,10 +597,10 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.ConditionalExpression:
                 semantics = processConditionalExpression(expression as ts.ConditionalExpression, symbolTable);
                 break;
-            //TODO: restore support of function expressions
-            // case ts.SyntaxKind.FunctionExpression:
-            //     semantics = processFunctionExpression(expression as ts.FunctionExpression);
-            //     break
+            case ts.SyntaxKind.FunctionExpression:
+            case ts.SyntaxKind.ArrowFunction:
+                semantics = processFunctionExpression(expression as ts.FunctionLikeDeclaration, symbolTable);
+                break
             default:
                 throw new Error(`Unsupported expression kind: ${ts.SyntaxKind[expression.kind]}`);
         }
@@ -672,29 +672,42 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         return GeneratedExpressionSemantics.createConditionalSemantics(condSemantics, thenSemantics, elseSemantics)
     }
 
-    //TODO: restore
-    // function processFunctionExpression(funcExp: ts.FunctionExpression): NodeId {
-    //     const prevControlVertex: NodeId = controlVertex;
+    function processFunctionExpression(functionExpression: ts.FunctionLikeDeclaration, symbolTable: SymbolTable): GeneratedExpressionSemantics {
+        const functionSemantics = new GeneratedStatementSemantics(symbolTable);
 
-    //     const funcStartNodeId: NodeId = graph.addVertex(VertexType.Start, {name: "__anonymousFunction__"});
-    //     controlVertex = funcStartNodeId;
+        const startVertex = new ir.StartVertex();
+        functionSemantics.concatControlVertex(startVertex);
 
-    //     symbolTable.addNewScope();
-    //     functionsStack.unshift(funcStartNodeId);
+        functionExpression.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
+            const parameterName: string = parameter.name['escapedText'];
+            const parameterVertex = new ir.ParameterVertex(position, type_utils.getTypeAtLocation(parameter));
+            functionSemantics.addDataVertex(parameterVertex);
+            functionSemantics.setVariable(parameterName, parameterVertex);
+        });
 
-    //     const thisNodeId: NodeId = graph.addVertex(VertexType.Parameter, {pos: 0});
-    //     graph.addEdge(thisNodeId, funcStartNodeId, "association", EdgeKind.Association);
-    //     symbolTable.addSymbol('this', thisNodeId);
-    //     processParameters(funcExp.parameters, funcStartNodeId);
-    //     processBlockStatements((funcExp.body as ts.Block).statements);
+        let bodySemantics;
+        if (functionExpression.body.kind == ts.SyntaxKind.Block) {
+            bodySemantics = processBlock(functionExpression.body as ts.Block, functionSemantics.symbolTable);
+        }
+        else {
+            bodySemantics = processExpression(functionExpression.body as ts.Expression, functionSemantics.symbolTable);
+        }
+        functionSemantics.concatSemantics(bodySemantics);
 
-    //     functionsStack.shift();
-    //     symbolTable.removeCurrentScope();
+        if (!(functionSemantics.getLastControl() instanceof ir.ReturnVertex)) {
+            functionSemantics.concatControlVertex(new ir.ReturnVertex());
+        }
 
-    //     controlVertex = prevControlVertex;
+        const subgraph = functionSemantics.createGraph();
 
-    //     return funcStartNodeId;
-    // }
+        const expressionSemantics = new GeneratedExpressionSemantics(symbolTable);
+        expressionSemantics.addSubgraph(subgraph);
+        const symbolVertex = new ir.StaticSymbolVertex(`_anonymous${functionExpression.pos}`,undefined, startVertex);
+        expressionSemantics.addDataVertex(symbolVertex);
+        expressionSemantics.value = symbolVertex;
+
+        return expressionSemantics;
+    }
 
     function processThisNode(symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const semantics = new GeneratedExpressionSemantics(symbolTable);
