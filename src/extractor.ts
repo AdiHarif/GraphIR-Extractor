@@ -6,7 +6,7 @@ import * as ir from "graphir";
 import assert from 'assert';
 
 import * as ast from './ts-ast.js'
-import { syntaxKindToBinaryOperator, syntaxKindToUnaryOperator, UnaryOperator, BinaryOperator } from "./mappings.js";
+import { syntaxKindToBinaryOperator, syntaxKindToUnaryOperator, UnaryOperator, BinaryOperator, compoundOperatorToBasicOperator } from "./mappings.js";
 import { GeneratedExpressionSemantics, GeneratedStatementSemantics } from "./semantics.js";
 import { SymbolTable } from "./symbolTable.js";
 import * as type_utils from "./type_utils.js";
@@ -835,6 +835,41 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
                 semantics.concatSemantics(leftSemantics);
             }
             semantics.value.debugInfo.sourceNodes.push(binExpression.left);
+        }
+        else if (binaryOperator == BinaryOperator.AssignAdd || binaryOperator == BinaryOperator.AssignSub) {
+            const basicOperator = compoundOperatorToBasicOperator(binaryOperator);
+            const leftSemantics = processExpression(binExpression.left, symbolTable);
+            semantics.concatSemantics(leftSemantics);
+
+            const opVertex = new ir.BinaryOperationVertex(basicOperator, undefined, leftSemantics.value, semantics.value);
+            semantics.addDataVertex(opVertex);
+            semantics.value = opVertex;
+
+            if (binExpression.left.kind == ts.SyntaxKind.Identifier) {
+                const identifier = ast.getIdentifierName(binExpression.left as ts.Identifier);
+
+                if (semantics.symbolTable.has(identifier)) {
+                    semantics.symbolTable.set(identifier, semantics.value);
+                }
+                else {
+                    assert(globalVariables.has(identifier));
+                    const varSymbol = new ir.StaticSymbolVertex(identifier, undefined);
+                    const storeVertex = new ir.StoreVertex(globalsVertex, varSymbol, semantics.value);
+                    semantics.concatControlVertex(storeVertex);
+                    semantics.addDataVertex(storeVertex);
+                    semantics.addDataVertex(varSymbol);
+                }
+            }
+            else {
+                let leftSemantics: GeneratedExpressionSemantics;
+                if (binExpression.left.kind == ts.SyntaxKind.ElementAccessExpression) {
+                    leftSemantics = storeElementAccessExpression(binExpression.left as ts.ElementAccessExpression, semantics.value, semantics.symbolTable);
+                }
+                else {
+                    leftSemantics = storePropertyAccessExpression(binExpression.left as ts.PropertyAccessExpression, semantics.value, semantics.symbolTable);
+                }
+                semantics.concatSemantics(leftSemantics);
+            }
         }
         else {
             const leftSemantics = processExpression(binExpression.left, semantics.symbolTable)

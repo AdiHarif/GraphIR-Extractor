@@ -50,6 +50,17 @@ export enum BinaryOperator {
     BitwiseAnd = '&',
     BitwiseOr = '|',
     BitwiseXor = '^',
+    AssignAdd = '+=',
+    AssignSub = '-=',
+    AssignMul = '*=',
+    AssignDiv = '/=',
+    AssignMod = '%=',
+    AssignLeftShift = '<<=',
+    AssignRightShift = '>>=',
+    AssignUnsignedRightShift = '>>>=',
+    AssignBitwiseAnd = '&=',
+    AssignBitwiseOr = '|=',
+    AssignBitwiseXor = '^=',
 }
 
 const syntaxKindToBinaryOperatorMap: { [key in ts.SyntaxKind]?: BinaryOperator } = {
@@ -75,6 +86,17 @@ const syntaxKindToBinaryOperatorMap: { [key in ts.SyntaxKind]?: BinaryOperator }
     [ts.SyntaxKind.AmpersandToken]: BinaryOperator.BitwiseAnd,
     [ts.SyntaxKind.BarToken]: BinaryOperator.BitwiseOr,
     [ts.SyntaxKind.CaretToken]: BinaryOperator.BitwiseXor,
+    [ts.SyntaxKind.PlusEqualsToken]: BinaryOperator.AssignAdd,
+    [ts.SyntaxKind.MinusEqualsToken]: BinaryOperator.AssignSub,
+    [ts.SyntaxKind.AsteriskEqualsToken]: BinaryOperator.AssignMul,
+    [ts.SyntaxKind.SlashEqualsToken]: BinaryOperator.AssignDiv,
+    [ts.SyntaxKind.PercentEqualsToken]: BinaryOperator.AssignMod,
+    [ts.SyntaxKind.LessThanLessThanEqualsToken]: BinaryOperator.AssignLeftShift,
+    [ts.SyntaxKind.GreaterThanGreaterThanEqualsToken]: BinaryOperator.AssignRightShift,
+    [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]: BinaryOperator.AssignUnsignedRightShift,
+    [ts.SyntaxKind.AmpersandEqualsToken]: BinaryOperator.AssignBitwiseAnd,
+    [ts.SyntaxKind.BarEqualsToken]: BinaryOperator.AssignBitwiseOr,
+    [ts.SyntaxKind.CaretEqualsToken]: BinaryOperator.AssignBitwiseXor,
 }
 
 export function syntaxKindToBinaryOperator(kind: ts.SyntaxKind): BinaryOperator {
@@ -82,4 +104,25 @@ export function syntaxKindToBinaryOperator(kind: ts.SyntaxKind): BinaryOperator 
         throw new Error(`SyntaxKind ${ts.SyntaxKind[kind]} is either not a binary operator, or its not supported)`)
     }
     return syntaxKindToBinaryOperatorMap[kind]
+}
+
+const compoundOperatorToBasicOperatorMap: { [key in BinaryOperator]?: BinaryOperator } = {
+    [BinaryOperator.AssignAdd]: BinaryOperator.Add,
+    [BinaryOperator.AssignSub]: BinaryOperator.Sub,
+    [BinaryOperator.AssignMul]: BinaryOperator.Mul,
+    [BinaryOperator.AssignDiv]: BinaryOperator.Div,
+    [BinaryOperator.AssignMod]: BinaryOperator.Mod,
+    [BinaryOperator.AssignLeftShift]: BinaryOperator.LeftShift,
+    [BinaryOperator.AssignRightShift]: BinaryOperator.RightShift,
+    [BinaryOperator.AssignUnsignedRightShift]: BinaryOperator.UnsignedRightShift,
+    [BinaryOperator.AssignBitwiseAnd]: BinaryOperator.BitwiseAnd,
+    [BinaryOperator.AssignBitwiseOr]: BinaryOperator.BitwiseOr,
+    [BinaryOperator.AssignBitwiseXor]: BinaryOperator.BitwiseXor,
+}
+
+export function compoundOperatorToBasicOperator(operator: BinaryOperator): BinaryOperator {
+    if (!(operator in compoundOperatorToBasicOperatorMap)) {
+        throw new Error(`Compound assignment operator ${BinaryOperator[operator]} is not supported`)
+    }
+    return compoundOperatorToBasicOperatorMap[operator]
 }
