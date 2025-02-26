@@ -324,8 +324,13 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
     function processForStatement(forStatement: ts.ForStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
         const semantics = new GeneratedStatementSemantics(symbolTable);
-        assert(ts.isVariableDeclarationList(forStatement.initializer), 'only VariableDeclarationList is supported as for loop initializer');
-        const initializerSemantics = processVariableDeclarationList(forStatement.initializer, semantics.symbolTable);
+        let initializerSemantics;
+        if (ts.isVariableDeclarationList(forStatement.initializer)) {
+            initializerSemantics = processVariableDeclarationList(forStatement.initializer, semantics.symbolTable);
+        }
+        else {
+            initializerSemantics = processExpression(forStatement.initializer as ts.Expression, semantics.symbolTable);
+        }
         semantics.concatSemantics(initializerSemantics);
         const pass = new ir.BlockEndVertex();
         const merge = new ir.MergeVertex();
