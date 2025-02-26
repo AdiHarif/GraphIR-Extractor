@@ -364,8 +364,10 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         branch.trueNext = truePass;
         semantics.setLastControl(truePass);
         const bodySemantics = processStatement(forStatement.statement, semantics.symbolTable);
-        const incrementorSemantics = processExpression(forStatement.incrementor as ts.Expression, bodySemantics.symbolTable);
-        bodySemantics.concatSemantics(incrementorSemantics);
+        if (forStatement.incrementor) {
+            const incrementorSemantics = processExpression(forStatement.incrementor, bodySemantics.symbolTable);
+            bodySemantics.concatSemantics(incrementorSemantics);
+        }
         const bodyEnd = new ir.BlockEndVertex();
         bodySemantics.concatControlVertex(bodyEnd);
         phiMap.forEach((phi, variable) => {
