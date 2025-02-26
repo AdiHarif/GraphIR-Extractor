@@ -107,6 +107,9 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             case ts.SyntaxKind.SwitchStatement:
                 semantics = processSwitchStatement(statement as ts.SwitchStatement, symbolTable);
                 break;
+            case ts.SyntaxKind.ThrowStatement:
+                semantics = processThrowStatement(statement as ts.ThrowStatement, symbolTable);
+                break;
             default:
                 throw new Error(`${ts.SyntaxKind[statement.kind]} is not supported`)
         }
@@ -483,6 +486,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
         semantics.patchBreakList();
 
+        return semantics;
+    }
+
+    function processThrowStatement(throwStatement: ts.ThrowStatement, symbolTable: SymbolTable): GeneratedStatementSemantics {
+        const semantics = new GeneratedStatementSemantics(symbolTable);
+        const throwSemantics = processExpression(throwStatement.expression, symbolTable);
+        semantics.concatSemantics(throwSemantics);
+        const throwVertex = new ir.ThrowVertex(throwSemantics.value);
+        semantics.concatControlVertex(throwVertex);
         return semantics;
     }
 

@@ -18,7 +18,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "graphir": "github:AdiHarif/GraphIR#bb54b61",
+    "graphir": "github:AdiHarif/GraphIR#7b432c0",
     "typescript": "4.8.4",
     "yargs": "^17.7.2"
   },
