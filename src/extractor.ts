@@ -194,12 +194,15 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
 
         const thisVertex = new ir.ParameterVertex(0, undefined);
         semantics.addDataVertex(thisVertex)
+        symbolVertex.addParameter(thisVertex);
+
         semantics.setVariable('this', thisVertex);
         constructorDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
             const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex)
+            symbolVertex.addParameter(parameterVertex);
         })
 
         assert(constructorDecl.body)
@@ -223,11 +226,14 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const thisVertex = new ir.ParameterVertex(0, undefined);
         semantics.addDataVertex(thisVertex)
         semantics.setVariable('this', thisVertex);
+        symbolVertex.addParameter(thisVertex);
+
         methodDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
             const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex);
+            symbolVertex.addParameter(parameterVertex);
         })
 
         assert(methodDecl.body)
