@@ -132,10 +132,6 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         }
         semantics.concatControlVertex(startVertex);
 
-        const thisVertex = new ir.StaticSymbolVertex('this', type_utils.getAnyType());
-        semantics.addDataVertex(thisVertex);
-        semantics.symbolTable.set('this', symbolVertex);
-
         funcDeclaration.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
             const parameterVertex = new ir.ParameterVertex(position, type_utils.getTypeAtLocation(parameter));
@@ -192,14 +188,14 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const symbolVertex = new ir.StaticSymbolVertex(`${className}::constructor`, type_utils.getFunctionType(constructorDecl), startVertex);
         semantics.addDataVertex(symbolVertex);
 
-        const thisVertex = new ir.ParameterVertex(0, undefined);
+        const thisVertex = new ir.StaticSymbolVertex("this", undefined);
         semantics.addDataVertex(thisVertex)
-        symbolVertex.addParameter(thisVertex);
-
         semantics.setVariable('this', thisVertex);
+        symbolVertex.this = thisVertex;
+
         constructorDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
-            const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
+            const parameterVertex = new ir.ParameterVertex(position, type_utils.getTypeAtLocation(parameter));
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex)
             symbolVertex.addParameter(parameterVertex);
@@ -223,14 +219,14 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
         const symbolVertex = new ir.StaticSymbolVertex(methodName, type_utils.getFunctionType(methodDecl), startVertex);
         semantics.addDataVertex(symbolVertex);
 
-        const thisVertex = new ir.ParameterVertex(0, undefined);
+        const thisVertex = new ir.StaticSymbolVertex("this", undefined);
         semantics.addDataVertex(thisVertex)
         semantics.setVariable('this', thisVertex);
-        symbolVertex.addParameter(thisVertex);
+        symbolVertex.this = thisVertex;
 
         methodDecl.parameters.forEach((parameter: ts.ParameterDeclaration, position: number) => {
             const parameterName: string = parameter.name['escapedText'];
-            const parameterVertex = new ir.ParameterVertex(position + 1, type_utils.getTypeAtLocation(parameter));
+            const parameterVertex = new ir.ParameterVertex(position, type_utils.getTypeAtLocation(parameter));
             semantics.addDataVertex(parameterVertex)
             semantics.setVariable(parameterName, parameterVertex);
             symbolVertex.addParameter(parameterVertex);
