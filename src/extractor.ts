@@ -780,7 +780,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processPrefixUnaryExpression(prefixUnaryExpression: ts.PrefixUnaryExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const unaryOperator: UnaryOperator = syntaxKindToUnaryOperator(prefixUnaryExpression.operator)
         const semantics: GeneratedExpressionSemantics = processExpression(prefixUnaryExpression.operand, symbolTable)
-        const operationVertex = new ir.PrefixUnaryOperationVertex(unaryOperator, type_utils.getExpressionType(prefixUnaryExpression));
+        const operationVertex = new ir.UnaryOperationVertex(unaryOperator, type_utils.getExpressionType(prefixUnaryExpression));
         const value = semantics.value;
         operationVertex.operand = value;
         semantics.addDataVertex(operationVertex);
@@ -804,7 +804,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processPostfixUnaryExpression(postfixUnaryExpression: ts.PostfixUnaryExpression, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const unaryOperator: UnaryOperator = syntaxKindToUnaryOperator(postfixUnaryExpression.operator)
         const semantics: GeneratedExpressionSemantics = processExpression(postfixUnaryExpression.operand, symbolTable)
-        const operationVertex = new ir.PostfixUnaryOperationVertex(unaryOperator, type_utils.getExpressionType(postfixUnaryExpression));
+        const operationVertex = new ir.UnaryOperationVertex(unaryOperator, type_utils.getExpressionType(postfixUnaryExpression));
         const value = semantics.value;
         operationVertex.operand = value;
         semantics.addDataVertex(operationVertex);
