@@ -943,7 +943,12 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
     function processIdentifierExpression(identifierExpression: ts.Identifier, symbolTable: SymbolTable): GeneratedExpressionSemantics {
         const identifier: string = ast.getIdentifierName(identifierExpression)
         const semantics = new GeneratedExpressionSemantics(symbolTable);
-        if (globalVariables.has(identifier)) {
+        if (identifier === "undefined") {
+            const valueVertex = new ir.LiteralVertex(undefined, undefined);
+            semantics.addDataVertex(valueVertex);
+            semantics.value = valueVertex;
+        }
+        else if (globalVariables.has(identifier)) {
             const propertyVertex = new ir.StaticSymbolVertex(identifier, undefined);
             const loadVertex = new ir.LoadVertex(undefined, globalsVertex, propertyVertex);
             semantics.addDataVertex(propertyVertex);
