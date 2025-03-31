@@ -106,7 +106,7 @@ export function syntaxKindToBinaryOperator(kind: ts.SyntaxKind): BinaryOperator 
     return syntaxKindToBinaryOperatorMap[kind]
 }
 
-const compoundOperatorToBasicOperatorMap: { [key in BinaryOperator]?: BinaryOperator } = {
+export const compoundOperatorToBasicOperatorMap: { [key in BinaryOperator]?: BinaryOperator } = {
     [BinaryOperator.AssignAdd]: BinaryOperator.Add,
     [BinaryOperator.AssignSub]: BinaryOperator.Sub,
     [BinaryOperator.AssignMul]: BinaryOperator.Mul,

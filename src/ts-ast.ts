@@ -4,6 +4,7 @@ import assert from 'assert'
 import ts from 'typescript'
 
 import * as type_utils from './type_utils.js'
+import { compoundOperatorToBasicOperatorMap } from './mappings.js';
 
 export function getIdentifierName(name: ts.Identifier | ts.PropertyName): string {
     return name['escapedText'];
@@ -26,7 +27,10 @@ export function getAssignedVariables(root: ts.Node): Set<string> {
         });
     });
     if (root.kind == ts.SyntaxKind.BinaryExpression &&
-        (root as ts.BinaryExpression).operatorToken.kind == ts.SyntaxKind.EqualsToken && // TODO: support more operators
+        (
+            (root as ts.BinaryExpression).operatorToken.kind == ts.SyntaxKind.EqualsToken ||
+            compoundOperatorToBasicOperatorMap[(root as ts.BinaryExpression).operatorToken.getText()] != undefined
+        ) &&
         (root as ts.BinaryExpression).left.kind == ts.SyntaxKind.Identifier) {
         const name = getIdentifierName((root as ts.BinaryExpression).left as ts.Identifier);
         assignedVariables.add(name);
