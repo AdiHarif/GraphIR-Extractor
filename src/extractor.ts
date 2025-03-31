@@ -663,13 +663,21 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
             // Creating store vertex
             const storeVertex = new ir.StoreVertex();
             storeVertex.object = objectVertex;
-            semantics.concatControlVertex(storeVertex)
+            let propertyVertex: ir.DataVertex;
 
             // Adding index vertex
-            const propertyName: string = ast.getIdentifierName(newProperty.name);
-            const propertyVertex = new ir.LiteralVertex(propertyName, type_utils.getStringType());
+            if (newProperty.name.kind == ts.SyntaxKind.Identifier) {
+                const propertyName: string = ast.getIdentifierName(newProperty.name);
+                propertyVertex = new ir.LiteralVertex(propertyName, type_utils.getStringType());
+                semantics.addDataVertex(propertyVertex);
+            }
+            else {
+                assert(ts.isStringLiteral(newProperty.name))
+                const propertySemantics = processExpression(newProperty.name, semantics.symbolTable);
+                semantics.concatSemantics(propertySemantics);
+                propertyVertex = propertySemantics.value;
+            }
             storeVertex.property = propertyVertex;
-            semantics.addDataVertex(propertyVertex);
 
             // Generating element calculation flow
             const initializerSemantics: GeneratedExpressionSemantics = processExpression(newProperty.initializer, semantics.symbolTable)
@@ -678,8 +686,7 @@ export function processSourceFile(sourceFile: ts.SourceFile): ir.Graph {
                 storeVertex.value = initializerValue;
             }
             semantics.concatSemantics(initializerSemantics)
-
-            semantics.setLastControl(storeVertex)
+            semantics.concatControlVertex(storeVertex)
         });
 
         return semantics;
